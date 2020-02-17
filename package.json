@@ -25,6 +25,9 @@
     "url": "https://github.com/itowlson/k8s-manifest-parser/issues"
   },
   "homepage": "https://github.com/itowlson/k8s-manifest-parser#readme",
+  "dependencies": {
+    "yaml-ast-parser": "0.0.43"
+  },
   "devDependencies": {
     "@types/mocha": "^5.2.6",
     "@types/node": "^12.0.0",
