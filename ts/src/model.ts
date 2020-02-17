@@ -9,7 +9,7 @@ export interface ResourceParse {
 
 export interface ResourceMapEntry {
     readonly keyRange: Range;  // TODO: or have the parse be an array of [Ranged<string>, Value]
-    readonly content: Value;
+    readonly value: Value;
 }
 
 export interface StringValue {
