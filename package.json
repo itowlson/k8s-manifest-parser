@@ -1,0 +1,35 @@
+{
+  "name": "k8s-manifest-parser",
+  "version": "0.0.1",
+  "description": "Parses Kubernetes manifests for processing or validation",
+  "main": "js/src/index.js",
+  "types": "js/src/index.d.ts",
+  "files": [
+    "js/src/**/*"
+  ],
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "npm run compile && mocha js/test/**/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itowlson/k8s-manifest-parser.git"
+  },
+  "keywords": [
+    "kubernetes"
+  ],
+  "author": "itowlson@microsoft.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/itowlson/k8s-manifest-parser/issues"
+  },
+  "homepage": "https://github.com/itowlson/k8s-manifest-parser#readme",
+  "devDependencies": {
+    "@types/mocha": "^5.2.6",
+    "@types/node": "^12.0.0",
+    "mocha": "^6.1.4",
+    "tslint": "^6.0.0",
+    "typescript": "^3.7.5"
+  }
+}
