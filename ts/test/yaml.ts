@@ -1,7 +1,6 @@
 import * as assert from 'assert';
 
 import * as parser from '../src/index';
-import { StringValue } from '../src/index';
 
 describe('YAML parser', () => {
     it('should handle a single resource', () => {
@@ -38,11 +37,29 @@ describe('YAML parser', () => {
         assert.equal(range(result.entries['kind'].value).start, 26);
         assert.equal(range(result.entries['kind'].value).end, 35);
     });
+    it('should support all scalar types at top level', () => {
+        const result = parser.parseYAML('stringy: foo\ninty: 123\nfloaty: 4.5\nbooly: true')[0];
+        assert.equal(Object.keys(result.entries).length, 4);
+        assertEqualsStringValue(result.entries['stringy'], 'foo');
+        assertEqualsNumberValue(result.entries['inty'], 123);
+        assertEqualsNumberValue(result.entries['floaty'], 4.5);
+        assertEqualsBooleanValue(result.entries['booly'], true);
+    });
 });
 
 function assertEqualsStringValue(entry: parser.ResourceMapEntry, expected: string): void {
     assert.equal(entry.value.valueType, 'string');
-    assert.equal((entry.value as StringValue).value, expected);
+    assert.equal((entry.value as parser.StringValue).value, expected);
+}
+
+function assertEqualsNumberValue(entry: parser.ResourceMapEntry, expected: number): void {
+    assert.equal(entry.value.valueType, 'number');
+    assert.equal((entry.value as parser.NumberValue).value, expected);
+}
+
+function assertEqualsBooleanValue(entry: parser.ResourceMapEntry, expected: boolean): void {
+    assert.equal(entry.value.valueType, 'boolean');
+    assert.equal((entry.value as parser.BooleanValue).value, expected);
 }
 
 function range(value: parser.Value): parser.Range {
