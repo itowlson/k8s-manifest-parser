@@ -23,7 +23,14 @@ function parseRootNode(rootNode: yp.YAMLNode): { [key: string]: model.ResourceMa
 
     const mapParse: { [key: string]: model.ResourceMapEntry } = {};
     for (const m of mappings) {
-        mapParse[m.key.rawValue] = { keyRange: { start: 0, end: 0 }, value: { valueType: 'string', value: 'foo', range: { start: 0, end: 0 } } };
+        mapParse[m.key.rawValue] = {
+            keyRange: { start: m.key.startPosition, end: m.key.endPosition },
+            value: {
+                valueType: 'string',
+                value: (m.value as yp.YAMLScalar).value,
+                range: { start: m.value.startPosition, end: m.value.endPosition }
+            }
+        };
     }
     return mapParse;
 }
