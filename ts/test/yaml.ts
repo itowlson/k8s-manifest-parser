@@ -206,6 +206,12 @@ describe('YAML parser', () => {
         assert.equal(w2.entries['size'].keyRange.start, 92);
         assert.equal(w2.entries['size'].keyRange.end, 96);
     });
+
+    it('should return multiline data as strings', () => {
+        const result = parser.parseYAML('foo: |\n  hello\n  world\nbar: quux')[0];
+        assertEqualsStringValue(result.entries['foo'], 'hello\nworld\n');
+        assertEqualsStringValue(result.entries['bar'], 'quux');
+    });
 });
 
 function assertEqualsStringValue(entry: parser.ResourceMapEntry, expected: string): void {
