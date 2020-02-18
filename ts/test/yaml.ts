@@ -45,6 +45,76 @@ describe('YAML parser', () => {
         assertEqualsNumberValue(result.entries['floaty'], 4.5);
         assertEqualsBooleanValue(result.entries['booly'], true);
     });
+
+    it('should represent nested entries as maps', () => {
+        const result = parser.parseYAML('apiVersion: apps/v1\nkind: Namespace\nmetadata:\n  name: foo\n  generation: 123\n  labels:\n    hello: world')[0];
+        assert.equal(Object.keys(result.entries).length, 3);
+        assert.equal(result.entries['apiVersion'].value.valueType, 'string');
+        assert.equal(result.entries['kind'].value.valueType, 'string');
+        assert.equal(result.entries['metadata'].value.valueType, 'map');
+    });
+    it('should represent nested hierarchies', () => {
+        const result = parser.parseYAML('apiVersion: apps/v1\nkind: Namespace\nmetadata:\n  name: foo\n  generation: 123\n  labels:\n    hello: world')[0];
+        const metadata = result.entries['metadata'].value;
+        if (metadata.valueType !== 'map') {
+            assert.fail('expected top level metadata item to be a map');
+            return;
+        }
+        const labels = metadata.entries['labels'].value;
+        if (labels.valueType !== 'map') {
+            assert.fail('expected metadata.labels item to be a map');
+            return;
+        }
+
+        assert.equal(Object.keys(metadata.entries).length, 3);
+        assertEqualsStringValue(metadata.entries['name'], 'foo');
+        assertEqualsNumberValue(metadata.entries['generation'], 123);
+
+        assert.equal(Object.keys(labels.entries).length, 1);
+        assertEqualsStringValue(labels.entries['hello'], 'world');
+    });
+    it('should give the correct key ranges for nested hierarchies', () => {
+        const result = parser.parseYAML('apiVersion: apps/v1\nkind: Namespace\nmetadata:\n  name: foo\n  generation: 123\n  labels:\n    hello: world')[0];
+        const metadata = result.entries['metadata'].value;
+        if (metadata.valueType !== 'map') {
+            assert.fail('expected top level metadata item to be a map');
+            return;
+        }
+        const labels = metadata.entries['labels'].value;
+        if (labels.valueType !== 'map') {
+            assert.fail('expected metadata.labels item to be a map');
+            return;
+        }
+
+        assert.equal(metadata.entries['name'].keyRange.start, 48);  // NOTE: don't naively subtract column numbers - '\n' is two columns but only one character!
+        assert.equal(metadata.entries['name'].keyRange.end, 52);
+        assert.equal(metadata.entries['generation'].keyRange.start, 60);
+        assert.equal(metadata.entries['generation'].keyRange.end, 70);
+        assert.equal(metadata.entries['labels'].keyRange.start, 78);
+        assert.equal(metadata.entries['labels'].keyRange.end, 84);
+        assert.equal(labels.entries['hello'].keyRange.start, 90);
+        assert.equal(labels.entries['hello'].keyRange.end, 95);
+    });
+    it('should give the correct value ranges for nested hierarchies', () => {
+        const result = parser.parseYAML('apiVersion: apps/v1\nkind: Namespace\nmetadata:\n  name: foo\n  generation: 123\n  labels:\n    hello: world')[0];
+        const metadata = result.entries['metadata'].value;
+        if (metadata.valueType !== 'map') {
+            assert.fail('expected top level metadata item to be a map');
+            return;
+        }
+        const labels = metadata.entries['labels'].value;
+        if (labels.valueType !== 'map') {
+            assert.fail('expected metadata.labels item to be a map');
+            return;
+        }
+
+        assert.equal(range(metadata.entries['name'].value).start, 54);  // NOTE: don't naively subtract column numbers - '\n' is two columns but only one character!
+        assert.equal(range(metadata.entries['name'].value).end, 57);
+        assert.equal(range(metadata.entries['generation'].value).start, 72);
+        assert.equal(range(metadata.entries['generation'].value).end, 75);
+        assert.equal(range(labels.entries['hello'].value).start, 97);
+        assert.equal(range(labels.entries['hello'].value).end, 102);
+    });
 });
 
 function assertEqualsStringValue(entry: parser.ResourceMapEntry, expected: string): void {

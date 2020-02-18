@@ -23,7 +23,7 @@ function parseRootNode(rootNode: yp.YAMLNode): { [key: string]: model.ResourceMa
     return parseMappings(map);
 }
 
-function parseMappings(map: yp.YamlMap) {
+function parseMappings(map: yp.YamlMap): { [key: string]: model.ResourceMapEntry; } {
     const mapParse: { [key: string]: model.ResourceMapEntry; } = {};
     parseMappingsInto(map.mappings, mapParse);
     return mapParse;
@@ -31,14 +31,26 @@ function parseMappings(map: yp.YamlMap) {
 
 function parseMappingsInto(mappings: yp.YAMLMapping[], mapParse: { [key: string]: model.ResourceMapEntry; }) {
     for (const m of mappings) {
-        const value = parseScalarValue(m.value as yp.YAMLScalar);
+        const value = parseNode(m.value);
         mapParse[m.key.rawValue] = {
             keyRange: { start: m.key.startPosition, end: m.key.endPosition },
-            value: {
-                range: { start: m.value.startPosition, end: m.value.endPosition },
-                ...value
-            }
+            value: value
         };
+    }
+}
+
+function parseNode(node: yp.YAMLNode): model.Value {
+    switch (node.kind) {
+        case yp.Kind.SCALAR:
+            const value = parseScalarValue(node as yp.YAMLScalar);
+            return {
+                range: { start: node.startPosition, end: node.endPosition },
+                ...value
+            };
+        case yp.Kind.MAP:
+            return parseMapValue(node as yp.YamlMap);
+        default:
+            throw new Error('unexpected node kind');
     }
 }
 
@@ -54,6 +66,13 @@ function parseScalarValue(node: yp.YAMLScalar): Rangeless<model.StringValue> | R
         default:
             return { valueType: 'string', value: node.value };
     }
+}
+
+function parseMapValue(node: yp.YamlMap): Rangeless<model.MapValue> {
+    return {
+        valueType: 'map',
+        entries: parseMappings(node)
+    };
 }
 
 type Rangeless<T> = Omit<T, 'range'>;
