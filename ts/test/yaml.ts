@@ -115,6 +115,97 @@ describe('YAML parser', () => {
         assert.equal(range(labels.entries['hello'].value).start, 97);
         assert.equal(range(labels.entries['hello'].value).end, 102);
     });
+
+    const arrayTestText = 'apiVersion: apps/v1\nkeywords:\n- foo\n- 123\n- true\nwidgets:\n- name: w1\n  size: 1\n- name: w2\n  size: 2';
+    it('should represent arrays as, you know, arrays', () => {
+        const result = parser.parseYAML(arrayTestText)[0];
+        assert.equal(Object.keys(result.entries).length, 3);
+        assert.equal(result.entries['keywords'].value.valueType, 'array');
+        assert.equal(result.entries['widgets'].value.valueType, 'array');
+    });
+    it('should give the correct key range for arrays', () => {
+        const result = parser.parseYAML(arrayTestText)[0];
+        assert.equal(result.entries['keywords'].keyRange.start, 20);
+        assert.equal(result.entries['keywords'].keyRange.end, 28);
+        assert.equal(result.entries['widgets'].keyRange.start, 49);
+        assert.equal(result.entries['widgets'].keyRange.end, 56);
+    });
+    it('should have the right number of entries in arrays', () => {
+        const result = parser.parseYAML(arrayTestText)[0];
+        const keywords = result.entries['keywords'].value;
+        if (keywords.valueType !== 'array') {
+            assert.fail('expected keywords item to be an array');
+            return;
+        }
+        const widgets = result.entries['widgets'].value;
+        if (widgets.valueType !== 'array') {
+            assert.fail('expected widgets item to be an array');
+            return;
+        }
+        assert.equal(keywords.items.length, 3);
+        assert.equal(widgets.items.length, 2);
+    });
+    it('should give the correct entry values for scalar arrays', () => {
+        const result = parser.parseYAML(arrayTestText)[0];
+        const keywords = result.entries['keywords'].value;
+        if (keywords.valueType !== 'array') {
+            assert.fail('expected keywords item to be an array');
+            return;
+        }
+        assertEqualsString(keywords.items[0], 'foo');
+        assertEqualsNumber(keywords.items[1], 123);
+        assertEqualsBoolean(keywords.items[2], true);
+    });
+    it('should give the correct entry range for scalar arrays', () => {
+        const result = parser.parseYAML(arrayTestText)[0];
+        const keywords = result.entries['keywords'].value;
+        if (keywords.valueType !== 'array') {
+            assert.fail('expected keywords item to be an array');
+            return;
+        }
+        assert.equal(range(keywords.items[0]).start, 32);
+        assert.equal(range(keywords.items[0]).end, 35);
+        assert.equal(range(keywords.items[1]).start, 38);
+        assert.equal(range(keywords.items[1]).end, 41);
+        assert.equal(range(keywords.items[2]).start, 44);
+        assert.equal(range(keywords.items[2]).end, 48);
+    });
+    it('should give the correct entry values for object arrays', () => {
+        const result = parser.parseYAML(arrayTestText)[0];
+        const widgets = result.entries['widgets'].value;
+        if (widgets.valueType !== 'array') {
+            assert.fail('expected widgets item to be an array');
+            return;
+        }
+        assert.equal(widgets.items[0].valueType, 'map');
+        assert.equal(widgets.items[1].valueType, 'map');
+        const w1 = widgets.items[0] as parser.MapValue;
+        const w2 = widgets.items[1] as parser.MapValue;
+        assertEqualsStringValue(w1.entries['name'], 'w1');
+        assertEqualsNumberValue(w1.entries['size'], 1);
+        assertEqualsStringValue(w2.entries['name'], 'w2');
+        assertEqualsNumberValue(w2.entries['size'], 2);
+    });
+    it('should give the correct entry range for object arrays', () => {
+        const result = parser.parseYAML(arrayTestText)[0];
+        const widgets = result.entries['widgets'].value;
+        if (widgets.valueType !== 'array') {
+            assert.fail('expected widgets item to be an array');
+            return;
+        }
+        assert.equal(widgets.items[0].valueType, 'map');
+        assert.equal(widgets.items[1].valueType, 'map');
+        const w1 = widgets.items[0] as parser.MapValue;
+        const w2 = widgets.items[1] as parser.MapValue;
+        assert.equal(w1.entries['name'].keyRange.start, 60);
+        assert.equal(w1.entries['name'].keyRange.end, 64);
+        assert.equal(w1.entries['size'].keyRange.start, 71);
+        assert.equal(w1.entries['size'].keyRange.end, 75);
+        assert.equal(w2.entries['name'].keyRange.start, 81);
+        assert.equal(w2.entries['name'].keyRange.end, 85);
+        assert.equal(w2.entries['size'].keyRange.start, 92);
+        assert.equal(w2.entries['size'].keyRange.end, 96);
+    });
 });
 
 function assertEqualsStringValue(entry: parser.ResourceMapEntry, expected: string): void {
@@ -130,6 +221,21 @@ function assertEqualsNumberValue(entry: parser.ResourceMapEntry, expected: numbe
 function assertEqualsBooleanValue(entry: parser.ResourceMapEntry, expected: boolean): void {
     assert.equal(entry.value.valueType, 'boolean');
     assert.equal((entry.value as parser.BooleanValue).value, expected);
+}
+
+function assertEqualsString(value: parser.Value, expected: string): void {
+    assert.equal(value.valueType, 'string');
+    assert.equal((value as parser.StringValue).value, expected);
+}
+
+function assertEqualsNumber(value: parser.Value, expected: number): void {
+    assert.equal(value.valueType, 'number');
+    assert.equal((value as parser.NumberValue).value, expected);
+}
+
+function assertEqualsBoolean(value: parser.Value, expected: boolean): void {
+    assert.equal(value.valueType, 'boolean');
+    assert.equal((value as parser.BooleanValue).value, expected);
 }
 
 function range(value: parser.Value): parser.Range {

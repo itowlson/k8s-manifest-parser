@@ -49,6 +49,8 @@ function parseNode(node: yp.YAMLNode): model.Value {
             };
         case yp.Kind.MAP:
             return parseMapValue(node as yp.YamlMap);
+        case yp.Kind.SEQ:
+            return parseSequenceValue(node as yp.YAMLSequence);
         default:
             throw new Error('unexpected node kind');
     }
@@ -72,6 +74,15 @@ function parseMapValue(node: yp.YamlMap): Rangeless<model.MapValue> {
     return {
         valueType: 'map',
         entries: parseMappings(node)
+    };
+}
+
+function parseSequenceValue(node: yp.YAMLSequence): model.ArrayValue {
+    const items = node.items;
+    const values = items.map((item) => parseNode(item));
+    return {
+        valueType: 'array',
+        items: values
     };
 }
 
