@@ -30,6 +30,7 @@ export interface Nodule {
 }
 
 export interface ArrayNodule extends Nodule {
+    child(key: number): Nodule;
     string(key: number): ScalarNodule<string>;
     number(key: number): ScalarNodule<number>;
     boolean(key: number): ScalarNodule<boolean>;
@@ -39,6 +40,7 @@ export interface ArrayNodule extends Nodule {
 }
 
 export interface MapNodule extends Nodule {
+    child(key: string): Nodule & Keyed;
     string(key: string): ScalarNodule<string> & Keyed;
     number(key: string): ScalarNodule<number> & Keyed;
     boolean(key: string): ScalarNodule<boolean> & Keyed;
@@ -88,10 +90,24 @@ function typedNoduleOf(v: model.Value): Nodule {
     }
 }
 
+function typedNoduleOf2(v: model.Value | undefined): Nodule {
+    if (!v) {
+        return typedNoduleOfMap(undefined);
+    }
+    switch (v.valueType) {
+        case 'string': return typedNoduleOfString(v);
+        case 'number': return typedNoduleOfNumber(v);
+        case 'boolean': return typedNoduleOfBoolean(v);
+        case 'array': return typedNoduleOfArray(v);
+        case 'map': return typedNoduleOfMap(v);
+    }
+}
+
 function typedNoduleOfMap(impl: model.Value | undefined): MapNodule {
     if (!impl || impl.valueType !== 'map') {
         return {
             type: () => impl ? 'not-valid' : 'not-present',
+            child: (_key: string) => kr(undefined, typedNoduleOfMap),
             string: (_key: string) => kr(undefined, typedNoduleOfString),
             number: (_key: string) => kr(undefined, typedNoduleOfNumber),
             boolean: (_key: string) => kr(undefined, typedNoduleOfBoolean),
@@ -104,6 +120,7 @@ function typedNoduleOfMap(impl: model.Value | undefined): MapNodule {
     }
     return {
         type: () => 'map',
+        child: (key: string) => kr(impl.entries[key], typedNoduleOf2),
         string: (key: string) => kr(impl.entries[key], typedNoduleOfString),
         number: (key: string) => kr(impl.entries[key], typedNoduleOfNumber),
         boolean: (key: string) => kr(impl.entries[key], typedNoduleOfBoolean),
@@ -119,6 +136,7 @@ function typedNoduleOfArray(impl: model.Value | undefined): ArrayNodule {
     if (!impl || impl.valueType !== 'array') {
         return {
             type: () => impl ? 'not-valid' : 'not-present',
+            child: (_key: number) => kr(undefined, typedNoduleOfMap),
             string: (_key: number) => typedNoduleOfString(undefined),
             number: (_key: number) => typedNoduleOfNumber(undefined),
             boolean: (_key: number) => typedNoduleOfBoolean(undefined),
@@ -131,6 +149,7 @@ function typedNoduleOfArray(impl: model.Value | undefined): ArrayNodule {
     }
     return {
         type: () => 'array',
+        child: (key: number) => typedNoduleOf2(impl.items[key]),
         string: (key: number) => typedNoduleOfString(impl.items[key]),
         number: (key: number) => typedNoduleOfNumber(impl.items[key]),
         boolean: (key: number) => typedNoduleOfBoolean(impl.items[key]),

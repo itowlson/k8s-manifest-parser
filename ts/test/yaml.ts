@@ -240,6 +240,39 @@ describe('YAML parser', () => {
 
     //     assert.equal(c.metadata.name.value, 'foo');
     // });
+    it('can traverse in a weak-typed way', () => {
+        const result = parser.parseYAML(badIdeaTestText)[0];
+        const c = parser.convenientify2(result) as any;
+
+        const apiVersion = c.child('apiVersion');
+        assert.equal(apiVersion.exists(), true);
+        assert.equal(apiVersion.value(), 'apps/v1');
+        assert.equal(apiVersion.keyRange().start, 0);
+        assert.equal(apiVersion.keyRange().end, 10);
+        assert.equal(apiVersion.range().start, 12);
+        assert.equal(apiVersion.range().end, 19);
+
+        assert.equal(c.string('zzzzapiVersion').exists(), false);
+
+        const kws = c.child('keywords');
+        assert.equal(kws.exists(), true);
+        assert.equal(kws.items().length, 3);
+        assert.equal(kws.items()[1].type(), 'number');
+        assert.equal(kws.string(0).value(), 'foo');
+        assert.equal(kws.number(1).value(), 123);
+        assert.equal(kws.boolean(2).value(), true);
+
+        assert.equal(c.child('metadata').child('name').value(), 'foo');
+        assert.equal(c.child('metadata').child('name').exists(), true);
+        assert.equal(c.child('metadata').child('gnome').exists(), false);
+        assert.equal(c.child('metadata').child('labels').child('hello').value(), 'world');
+        assert.equal(c.child('metadata').child('labels').child('zzzzzzzzhello').exists(), false);
+
+        assert.equal(c.child('metadata').map('labelles').string('hello').exists(), false);
+
+        assert.equal(c.child('metadata').child('labels').child('hello').valid(), true);
+    });
+
     it('might not be a terrible idea either', () => {
         const result = parser.parseYAML(badIdeaTestText)[0];
         const c = parser.convenientify2(result);
