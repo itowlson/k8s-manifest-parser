@@ -273,6 +273,24 @@ describe('YAML parser', () => {
         assert.equal(c.map('metadata').map('labels').string('hello').valid(), true);
         assert.equal(c.map('metadata').map('labels').number('hello').valid(), false);
     });
+    it('might actually be coming together', () => {
+        const result = parser.parseYAML(badIdeaTestText)[0];
+        const c = parser.convenientify2(result);
+
+        const kws = c.array('keywords');
+        assert.equal(kws.string(0).rawText(), 'foo');
+        assert.equal(kws.number(1).rawText(), '123');
+        assert.equal(kws.boolean(2).rawText(), 'true');
+    });
+    it('can provide raw text and range even when it contains the wrong kind of data', () => {
+        const result = parser.parseYAML(badIdeaTestText)[0];
+        const c = parser.convenientify2(result);
+
+        const kws = c.array('keywords');
+        assert.equal(kws.number(0).rawText(), 'foo');
+        assert.equal(kws.number(0).range().start, 32);
+        assert.equal(kws.number(0).range().end, 35);
+    });
 });
 
 function assertEqualsRawText(entry: parser.ResourceMapEntry, expected: string): void {

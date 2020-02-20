@@ -31,18 +31,6 @@ export interface UntypedNodule {
     readonly [index: number]: any;
 }
 
-// export interface IndexableNodule<I extends (string | number)> {
-//     string(key: I): ScalarNodule<string>;
-//     number(key: I): ScalarNodule<number>;
-//     boolean(key: I): ScalarNodule<boolean>;
-//     // possibly need a generic scalar(key) too
-//     array(key: I): IndexableNodule<number>; // ReadonlyArray</* what - elements could be scalars or arrays or maps, so have to support the union of accessors (but no keyRange) */TypedNodule>;
-//     map(key: I): IndexableNodule<string>;
-//     // keyRange(): model.Range;  // TODO: ideally only if coming off map(...)
-//     exists(): boolean;
-//     valid(): boolean;
-// }
-
 export interface Keyed {
     keyRange(): model.Range;
 }
@@ -75,6 +63,7 @@ export interface MapNodule extends Nodule {
 
 export interface ScalarNodule<T> extends Nodule {
     value(): T;
+    rawText(): string;
     range(): model.Range;
 }
 
@@ -167,31 +156,45 @@ function typedNoduleOfArray(impl: model.Value | undefined): ArrayNodule {
     };
 }
 
-function checkString(v: model.Value | undefined): asserts v is model.StringValue {
+function checkExists(v: model.Value | undefined): asserts v is model.Value {
     if (!v) {
         throw new Error('entry does not exist');
     }
+}
+
+function checkString(v: model.Value | undefined): asserts v is model.StringValue {
+    checkExists(v);
     if (v.valueType !== 'string') {
         throw new Error(`expected type 'string' but was '${v.valueType}'`);
     }
 }
 
 function checkNumber(v: model.Value | undefined): asserts v is model.NumberValue {
-    if (!v) {
-        throw new Error('entry does not exist');
-    }
+    checkExists(v);
     if (v.valueType !== 'number') {
         throw new Error(`expected type 'number' but was '${v.valueType}'`);
     }
 }
 
 function checkBoolean(v: model.Value | undefined): asserts v is model.BooleanValue {
-    if (!v) {
-        throw new Error('entry does not exist');
-    }
+    checkExists(v);
     if (v.valueType !== 'boolean') {
         throw new Error(`expected type 'boolean' but was '${v.valueType}'`);
     }
+}
+
+function checkScalar(v: model.Value | undefined): asserts v is model.StringValue | model.NumberValue | model.BooleanValue {
+    checkExists(v);
+    if (v.valueType === 'string' || v.valueType === 'number' || v.valueType === 'boolean') {
+        return;
+    }
+    throw new Error(`expected scalar but was '${v.valueType}'`);
+}
+
+function getRawText(v: model.Value | undefined) {
+    checkExists(v);
+    checkScalar(v);
+    return v.rawText;
 }
 
 function typedNoduleOfString(impl: model.Value | undefined): ScalarNodule<string> {
@@ -202,9 +205,10 @@ function typedNoduleOfString(impl: model.Value | undefined): ScalarNodule<string
             return impl.value;
         },
         range: () => {
-            checkString(impl);
+            checkScalar(impl);
             return impl.range;
         },
+        rawText: () => getRawText(impl),
         exists: () => impl !== undefined,
         valid: () => impl !== undefined && impl.valueType === 'string'
     };
@@ -218,9 +222,10 @@ function typedNoduleOfNumber(impl: model.Value | undefined): ScalarNodule<number
             return impl.value;
         },
         range: () => {
-            checkNumber(impl);
+            checkScalar(impl);
             return impl.range;
         },
+        rawText: () => getRawText(impl),
         exists: () => impl !== undefined,
         valid: () => impl !== undefined && impl.valueType === 'number'
     };
@@ -234,9 +239,10 @@ function typedNoduleOfBoolean(impl: model.Value | undefined): ScalarNodule<boole
             return impl.value;
         },
         range: () => {
-            checkBoolean(impl);
+            checkScalar(impl);
             return impl.range;
         },
+        rawText: () => getRawText(impl),
         exists: () => impl !== undefined,
         valid: () => impl !== undefined && impl.valueType === 'boolean'
     };
