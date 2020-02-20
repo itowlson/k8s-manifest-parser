@@ -89,16 +89,21 @@ function kr<T>(r: model.ResourceMapEntry | undefined, f: (v: model.Value | undef
             if (r) {
                 return r.keyRange;
             }
-            throw new Error("I DON'T THINK SO MATE");
+            throw new Error('element is not the value of a key');
         }
     };
     return { ...n, ...k };
 }
 
-function typedNoduleOf(v: model.Value | undefined): Nodule {
-    if (!v) {
-        throw new Error('nooooooooooooooooooooooooooooooooooooooooooooooo');
-    }
+function krDefTotes<T>(r: model.ResourceMapEntry, f: (v: model.Value) => T): T & Keyed {
+    const n = f(r.value);
+    const k: Keyed = {
+        keyRange: () => r.keyRange
+    };
+    return { ...n, ...k };
+}
+
+function typedNoduleOf(v: model.Value): Nodule {
     switch (v.valueType) {
         case 'string': return typedNoduleOfString(v);
         case 'number': return typedNoduleOfNumber(v);
@@ -131,7 +136,7 @@ function typedNoduleOfMap(impl: model.Value | undefined): MapNodule {
         map: (key: string) => kr(impl.entries[key], typedNoduleOfMap),
         exists: () => true,
         valid: () => true,
-        items: () => new Map<string, Nodule>(Object.entries(impl.entries).map(([k, v]) => [k, kr(v, typedNoduleOf)])),
+        items: () => new Map<string, Nodule>(Object.entries(impl.entries).map(([k, v]) => [k, krDefTotes(v, typedNoduleOf)])),
     };
 }
 
