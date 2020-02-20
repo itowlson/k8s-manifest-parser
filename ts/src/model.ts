@@ -14,18 +14,21 @@ export interface ResourceMapEntry {
 
 export interface StringValue {
     readonly valueType: 'string';
+    readonly rawText: string;
     readonly value: string;
     readonly range: Range;
 }
 
 export interface NumberValue {
     readonly valueType: 'number';
+    readonly rawText: string;
     readonly value: number;
     readonly range: Range;
 }
 
 export interface BooleanValue {
     readonly valueType: 'boolean';
+    readonly rawText: string;
     readonly value: boolean;
     readonly range: Range;
 }

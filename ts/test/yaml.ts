@@ -45,6 +45,14 @@ describe('YAML parser', () => {
         assertEqualsNumberValue(result.entries['floaty'], 4.5);
         assertEqualsBooleanValue(result.entries['booly'], true);
     });
+    it('should provide access to raw text', () => {
+        const result = parser.parseYAML('stringy: foo\ninty: 123\nfloaty: 4.5\nbooly: true')[0];
+        assert.equal(Object.keys(result.entries).length, 4);
+        assertEqualsRawText(result.entries['stringy'], 'foo');
+        assertEqualsRawText(result.entries['inty'], '123');
+        assertEqualsRawText(result.entries['floaty'], '4.5');
+        assertEqualsRawText(result.entries['booly'], 'true');
+    });
 
     it('should represent nested entries as maps', () => {
         const result = parser.parseYAML('apiVersion: apps/v1\nkind: Namespace\nmetadata:\n  name: foo\n  generation: 123\n  labels:\n    hello: world')[0];
@@ -266,6 +274,11 @@ describe('YAML parser', () => {
         assert.equal(c.map('metadata').map('labels').number('hello').valid(), false);
     });
 });
+
+function assertEqualsRawText(entry: parser.ResourceMapEntry, expected: string): void {
+    assert.equal(['string', 'number', 'boolean'].includes(entry.value.valueType), true);
+    assert.equal((entry.value as (parser.StringValue | parser.NumberValue | parser.BooleanValue)).rawText, expected);
+}
 
 function assertEqualsStringValue(entry: parser.ResourceMapEntry, expected: string): void {
     assert.equal(entry.value.valueType, 'string');

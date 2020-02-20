@@ -60,13 +60,13 @@ function parseScalarValue(node: yp.YAMLScalar): Rangeless<model.StringValue> | R
     const scalarType = yp.determineScalarType(node);
     switch (scalarType) {
         case yp.ScalarType.bool:
-            return { valueType: 'boolean', value: yp.parseYamlBoolean(node.value) };
+            return { valueType: 'boolean', rawText: node.value, value: yp.parseYamlBoolean(node.value) };
         case yp.ScalarType.float:
-            return { valueType: 'number', value: yp.parseYamlFloat(node.value) };
+            return { valueType: 'number', rawText: node.value, value: yp.parseYamlFloat(node.value) };
         case yp.ScalarType.int:
-            return { valueType: 'number', value: yp.parseYamlInteger(node.value) };
+            return { valueType: 'number', rawText: node.value, value: yp.parseYamlInteger(node.value) };
         default:
-            return { valueType: 'string', value: node.value };
+            return { valueType: 'string', rawText: node.value, value: node.value };
     }
 }
 
