@@ -48,7 +48,7 @@ export interface Keyed {
 }
 
 export interface Nodule {
-    type(): 'string' | 'number' | 'boolean' | 'array' | 'map';
+    type(): 'string' | 'number' | 'boolean' | 'array' | 'map' | 'not-present' | 'not-valid';
     exists(): boolean;
     valid(): boolean;
 }
@@ -57,7 +57,7 @@ export interface ArrayNodule extends Nodule {
     string(key: number): ScalarNodule<string>;
     number(key: number): ScalarNodule<number>;
     boolean(key: number): ScalarNodule<boolean>;
-    // possibly need a generic scalar(key) too
+    // possibly need a generic scalar(key) too, and/or a rawText()
     array(key: number): ArrayNodule;
     map(key: number): MapNodule;
     items(): ReadonlyArray<Nodule>;
@@ -110,7 +110,17 @@ function typedNoduleOf(v: model.Value | undefined): Nodule {
 
 function typedNoduleOfMap(impl: model.Value | undefined): MapNodule {
     if (!impl || impl.valueType !== 'map') {
-        throw new Error('MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP>');
+        return {
+            type: () => impl ? 'not-valid' : 'not-present',
+            string: (_key: string) => kr(undefined, typedNoduleOfString),
+            number: (_key: string) => kr(undefined, typedNoduleOfNumber),
+            boolean: (_key: string) => kr(undefined, typedNoduleOfBoolean),
+            array: (_key: string) => kr(undefined, typedNoduleOfArray),
+            map: (_key: string) => kr(undefined, typedNoduleOfMap),
+            exists: () => !!impl,
+            valid: () => false,
+            items: () => { throw new Error('element is not an array'); },
+        };
     }
     return {
         type: () => 'map',
@@ -127,7 +137,17 @@ function typedNoduleOfMap(impl: model.Value | undefined): MapNodule {
 
 function typedNoduleOfArray(impl: model.Value | undefined): ArrayNodule {
     if (!impl || impl.valueType !== 'array') {
-        throw new Error('ARRAAAAAAAAAAAAAAAAAAAAAAAAYYYYYYYYYYYY');
+        return {
+            type: () => impl ? 'not-valid' : 'not-present',
+            string: (_key: number) => typedNoduleOfString(undefined),
+            number: (_key: number) => typedNoduleOfNumber(undefined),
+            boolean: (_key: number) => typedNoduleOfBoolean(undefined),
+            array: (_key: number) => typedNoduleOfArray(undefined),
+            map: (_key: number) => typedNoduleOfMap(undefined),
+            exists: () => !!impl,
+            valid: () => false,
+            items: () => { throw new Error('element is not an array'); },
+        };
     }
     return {
         type: () => 'array',
@@ -141,16 +161,6 @@ function typedNoduleOfArray(impl: model.Value | undefined): ArrayNodule {
         items: () => impl.items.map((i) => typedNoduleOf(i)),
     };
 }
-
-// function checkString(impl: model.Value | undefined): impl is model.StringValue {
-//     if (!impl) {
-//         throw new Error('entry does not exist');
-//     }
-//     if (impl.valueType !== 'string') {
-//         throw new Error(`expected type 'string' but was '${impl.valueType}'`);
-//     }
-//     return true;
-// }
 
 function checkString(v: model.Value | undefined): asserts v is model.StringValue {
     if (!v) {

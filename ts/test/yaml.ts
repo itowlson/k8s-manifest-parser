@@ -260,7 +260,10 @@ describe('YAML parser', () => {
         assert.equal(c.map('metadata').map('labels').string('hello').value(), 'world');
         assert.equal(c.map('metadata').map('labels').string('zzzzzzzzhello').exists(), false);
 
-        // assert.equal(c.map('metadata').map('labelles').string('hello').exists(), false);
+        assert.equal(c.map('metadata').map('labelles').string('hello').exists(), false);
+
+        assert.equal(c.map('metadata').map('labels').string('hello').valid(), true);
+        assert.equal(c.map('metadata').map('labels').number('hello').valid(), false);
     });
 });
 
