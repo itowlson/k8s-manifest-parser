@@ -291,6 +291,17 @@ describe('YAML parser', () => {
         assert.equal(kws.number(0).range().start, 32);
         assert.equal(kws.number(0).range().end, 35);
     });
+    it('tells you what is wrong when your type expectations are not fulfilled', () => {
+        const result = parser.parseYAML(badIdeaTestText)[0];
+        const c = parser.convenientify2(result);
+
+        assert.equal(c.array('metadata').type(), 'not-valid');
+        assert.equal(c.array('zzzzzzz').type(), 'not-present');
+
+        const md = c.map('metadata');
+        assert.equal(md.number('name').type(), 'not-valid');
+        assert.equal(md.number('zzzzzzz').type(), 'not-present');
+    });
 });
 
 function assertEqualsRawText(entry: parser.ResourceMapEntry, expected: string): void {

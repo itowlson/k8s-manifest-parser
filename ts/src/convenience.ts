@@ -35,8 +35,10 @@ export interface Keyed {
     keyRange(): model.Range;
 }
 
+export type NoduleType = 'string' | 'number' | 'boolean' | 'array' | 'map' | 'not-present' | 'not-valid';
+
 export interface Nodule {
-    type(): 'string' | 'number' | 'boolean' | 'array' | 'map' | 'not-present' | 'not-valid';
+    type(): NoduleType;
     exists(): boolean;
     valid(): boolean;
 }
@@ -197,9 +199,16 @@ function getRawText(v: model.Value | undefined) {
     return v.rawText;
 }
 
+function noduleType(expected: NoduleType, v: model.Value | undefined): NoduleType {
+    if (!v) {
+        return 'not-present';
+    }
+    return v.valueType === expected ? v.valueType : 'not-valid';
+}
+
 function typedNoduleOfString(impl: model.Value | undefined): ScalarNodule<string> {
     return {
-        type: () => 'string',
+        type: () => noduleType('string', impl),
         value: () => {
             checkString(impl);
             return impl.value;
@@ -216,7 +225,7 @@ function typedNoduleOfString(impl: model.Value | undefined): ScalarNodule<string
 
 function typedNoduleOfNumber(impl: model.Value | undefined): ScalarNodule<number> {
     return {
-        type: () => 'number',
+        type: () => noduleType('number', impl),
         value: () => {
             checkNumber(impl);
             return impl.value;
@@ -233,7 +242,7 @@ function typedNoduleOfNumber(impl: model.Value | undefined): ScalarNodule<number
 
 function typedNoduleOfBoolean(impl: model.Value | undefined): ScalarNodule<boolean> {
     return {
-        type: () => 'boolean',
+        type: () => noduleType('boolean', impl),
         value: () => {
             checkBoolean(impl);
             return impl.value;
