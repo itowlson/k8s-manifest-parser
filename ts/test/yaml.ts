@@ -249,11 +249,18 @@ describe('YAML parser', () => {
         const kws = c.array('keywords');
         assert.equal(kws.exists(), true);
         assert.equal(kws.items().length, 3);
+        assert.equal(kws.items()[1].type(), 'number');
         assert.equal(kws.string(0).value(), 'foo');
         assert.equal(kws.number(1).value(), 123);
         assert.equal(kws.boolean(2).value(), true);
 
         assert.equal(c.map('metadata').string('name').value(), 'foo');
+        assert.equal(c.map('metadata').string('name').exists(), true);
+        assert.equal(c.map('metadata').string('gnome').exists(), false);
+        assert.equal(c.map('metadata').map('labels').string('hello').value(), 'world');
+        assert.equal(c.map('metadata').map('labels').string('zzzzzzzzhello').exists(), false);
+
+        // assert.equal(c.map('metadata').map('labelles').string('hello').exists(), false);
     });
 });
 

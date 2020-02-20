@@ -110,7 +110,7 @@ function typedNoduleOf(v: model.Value | undefined): Nodule {
 
 function typedNoduleOfMap(impl: model.Value | undefined): MapNodule {
     if (!impl || impl.valueType !== 'map') {
-        throw new Error('FIIIIIIIIIIIIIE');
+        throw new Error('MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP>');
     }
     return {
         type: () => 'map',
@@ -127,7 +127,7 @@ function typedNoduleOfMap(impl: model.Value | undefined): MapNodule {
 
 function typedNoduleOfArray(impl: model.Value | undefined): ArrayNodule {
     if (!impl || impl.valueType !== 'array') {
-        throw new Error('FIIIIIIIIIIIIIE');
+        throw new Error('ARRAAAAAAAAAAAAAAAAAAAAAAAAYYYYYYYYYYYY');
     }
     return {
         type: () => 'array',
