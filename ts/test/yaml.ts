@@ -223,23 +223,23 @@ describe('YAML parser', () => {
 
     const badIdeaTestText = arrayTestText + '\nmetadata:\n  name: foo\n  generation: 123\n  labels:\n    hello: world';
 
-    it('might not be a great idea', () => {
-        const result = parser.parseYAML(badIdeaTestText)[0];
-        const c = parser.convenientify(result);
+    // it('might not be a great idea', () => {
+    //     const result = parser.parseYAML(badIdeaTestText)[0];
+    //     const c = parser.convenientify(result);
 
-        assert.equal(c.apiVersion.value, 'apps/v1');
-        assert.equal(c.apiVersion.keyRange.start, 0);
-        assert.equal(c.apiVersion.keyRange.end, 10);
-        assert.equal(c.apiVersion.range.start, 12);
-        assert.equal(c.apiVersion.range.end, 19);
+    //     assert.equal(c.apiVersion.value, 'apps/v1');
+    //     assert.equal(c.apiVersion.keyRange.start, 0);
+    //     assert.equal(c.apiVersion.keyRange.end, 10);
+    //     assert.equal(c.apiVersion.range.start, 12);
+    //     assert.equal(c.apiVersion.range.end, 19);
 
-        assert.equal(c.keywords.length, 3);
-        assert.equal(c.keywords[0].value, 'foo');
-        assert.equal(c.keywords[1].value, 123);
-        assert.equal(c.keywords[2].value, true);
+    //     assert.equal(c.keywords.length, 3);
+    //     assert.equal(c.keywords[0].value, 'foo');
+    //     assert.equal(c.keywords[1].value, 123);
+    //     assert.equal(c.keywords[2].value, true);
 
-        assert.equal(c.metadata.name.value, 'foo');
-    });
+    //     assert.equal(c.metadata.name.value, 'foo');
+    // });
     it('might not be a terrible idea either', () => {
         const result = parser.parseYAML(badIdeaTestText)[0];
         const c = parser.convenientify2(result);
