@@ -1,22 +1,5 @@
 import * as model from './model';
 
-// TODO: support raw JS-style a la doc.metadata.labels['foo'].range()
-//
-// desired usage would be something like:
-
-/*
-```
-const ast = makeit(someText)
-for (const container of ast.spec.containers) {
-    const requiredMem = container.required.memory;
-    const limitsMem = container.limits.memory;
-    if (requiredMem.numValue() < limitsMem.numValue()) {
-        mkwarn(requiredMem.range, 'required memory is less than max memory');
-    }
-}
-```
-*/
-
 export interface Keyed {
     keyRange(): model.Range;
 }
@@ -58,27 +41,6 @@ export interface ScalarNodule<T> extends Nodule {
 export function convenientify2(impl: model.ResourceParse): MapNodule {
     return typedNoduleOfMap({ valueType: 'map', entries: impl.entries });
 }
-
-// These don't work because they don't intercept keys/indexes that
-// don't exist
-
-// function indexulise(nodule: ArrayNodule): ArrayNodule {
-//     const items = nodule.items();
-//     const indexed: any = {};
-//     for (const index in items) {
-//         indexed[index] = items[index];
-//     }
-//     return { ...nodule, ...indexed };
-// }
-
-// function accessorise(nodule: MapNodule): MapNodule {
-//     const items = nodule.items();
-//     const keyed: any = {};
-//     for (const [key, value] of items.entries()) {
-//         keyed[key] = value;
-//     }
-//     return { ...nodule, ...keyed };
-// }
 
 function proxulise(n: Nodule): any {
     switch (n.type()) {
