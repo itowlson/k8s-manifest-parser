@@ -225,7 +225,7 @@ describe('YAML parser', () => {
 
     it('can traverse in a weak-typed way', () => {
         const result = parser.parseYAML(badIdeaTestText)[0];
-        const c = parser.convenientify2(result) as any;
+        const c = parser.asTraversable(result) as any;
 
         const apiVersion = c.child('apiVersion');
         assert.equal(apiVersion.exists(), true);
@@ -257,7 +257,7 @@ describe('YAML parser', () => {
     });
     it('can traverse in a weak-typed using native JS idioms', () => {
         const result = parser.parseYAML(badIdeaTestText)[0];
-        const c = parser.convenientify2(result) as any;
+        const c = parser.asTraversable(result) as any;
 
         const apiVersion = c.apiVersion;
         assert.equal(apiVersion.exists(), true);
@@ -290,7 +290,7 @@ describe('YAML parser', () => {
 
     it('might not be a terrible idea either', () => {
         const result = parser.parseYAML(badIdeaTestText)[0];
-        const c = parser.convenientify2(result);
+        const c = parser.asTraversable(result);
 
         const apiVersion = c.string('apiVersion');
         assert.equal(apiVersion.exists(), true);
@@ -323,7 +323,7 @@ describe('YAML parser', () => {
     });
     it('might actually be coming together', () => {
         const result = parser.parseYAML(badIdeaTestText)[0];
-        const c = parser.convenientify2(result);
+        const c = parser.asTraversable(result);
 
         const kws = c.array('keywords');
         assert.equal(kws.string(0).rawText(), 'foo');
@@ -332,7 +332,7 @@ describe('YAML parser', () => {
     });
     it('can provide raw text and range even when it contains the wrong kind of data', () => {
         const result = parser.parseYAML(badIdeaTestText)[0];
-        const c = parser.convenientify2(result);
+        const c = parser.asTraversable(result);
 
         const kws = c.array('keywords');
         assert.equal(kws.number(0).rawText(), 'foo');
@@ -341,7 +341,7 @@ describe('YAML parser', () => {
     });
     it('tells you what is wrong when your type expectations are not fulfilled', () => {
         const result = parser.parseYAML(badIdeaTestText)[0];
-        const c = parser.convenientify2(result);
+        const c = parser.asTraversable(result);
 
         assert.equal(c.array('metadata').type(), 'not-valid');
         assert.equal(c.array('zzzzzzz').type(), 'not-present');

@@ -4,57 +4,57 @@ export interface Keyed {
     keyRange(): model.Range;
 }
 
-export type NoduleType = 'string' | 'number' | 'boolean' | 'array' | 'map' | 'not-present' | 'not-valid';
+export type TraversalEntryType = 'string' | 'number' | 'boolean' | 'array' | 'map' | 'not-present' | 'not-valid';
 
-export interface Nodule {
-    type(): NoduleType;
+export interface TraversalEntry {
+    type(): TraversalEntryType;
     exists(): boolean;
     valid(): boolean;
 }
 
-export interface ArrayNodule extends Nodule {
-    child(key: number): Nodule;
-    string(key: number): ScalarNodule<string>;
-    number(key: number): ScalarNodule<number>;
-    boolean(key: number): ScalarNodule<boolean>;
-    array(key: number): ArrayNodule;
-    map(key: number): MapNodule;
-    items(): ReadonlyArray<Nodule>;
+export interface ArrayTraversalEntry extends TraversalEntry {
+    child(key: number): TraversalEntry;
+    string(key: number): ScalarTraversalEntry<string>;
+    number(key: number): ScalarTraversalEntry<number>;
+    boolean(key: number): ScalarTraversalEntry<boolean>;
+    array(key: number): ArrayTraversalEntry;
+    map(key: number): MapTraversalEntry;
+    items(): ReadonlyArray<TraversalEntry>;
 }
 
-export interface MapNodule extends Nodule {
-    child(key: string): Nodule & Keyed;
-    string(key: string): ScalarNodule<string> & Keyed;
-    number(key: string): ScalarNodule<number> & Keyed;
-    boolean(key: string): ScalarNodule<boolean> & Keyed;
-    array(key: string): ArrayNodule & Keyed;
-    map(key: string): MapNodule & Keyed;
-    items(): ReadonlyMap<string, Nodule>;
+export interface MapTraversalEntry extends TraversalEntry {
+    child(key: string): TraversalEntry & Keyed;
+    string(key: string): ScalarTraversalEntry<string> & Keyed;
+    number(key: string): ScalarTraversalEntry<number> & Keyed;
+    boolean(key: string): ScalarTraversalEntry<boolean> & Keyed;
+    array(key: string): ArrayTraversalEntry & Keyed;
+    map(key: string): MapTraversalEntry & Keyed;
+    items(): ReadonlyMap<string, TraversalEntry>;
 }
 
-export interface ScalarNodule<T> extends Nodule {
+export interface ScalarTraversalEntry<T> extends TraversalEntry {
     value(): T;
     rawText(): string;
     range(): model.Range;
 }
 
-export function convenientify2(impl: model.ResourceParse): MapNodule {
-    return typedNoduleOfMap({ valueType: 'map', entries: impl.entries });
+export function asTraversable(impl: model.ResourceParse): MapTraversalEntry {
+    return traversalEntryOfMap({ valueType: 'map', entries: impl.entries });
 }
 
-function proxulise(n: Nodule): any {
+function withChildAccessors(n: TraversalEntry): any {
     switch (n.type()) {
         case 'array':
-            return proxuliseArray(n as ArrayNodule);
+            return withArrayIndexAccessors(n as ArrayTraversalEntry);
         case 'map':
         case 'not-valid':
         case 'not-present':
-            return proxuliseMap(n as MapNodule);
+            return withMapKeyAccessors(n as MapTraversalEntry);
         default: return n;
     }
 }
 
-function numerous(p: PropertyKey): { num: number } | undefined {
+function numberLike(p: PropertyKey): { num: number } | undefined {
     if (typeof(p) === 'number') {
         return { num: p };
     }
@@ -65,14 +65,14 @@ function numerous(p: PropertyKey): { num: number } | undefined {
     return undefined;
 }
 
-const indexHandler: ProxyHandler<ArrayNodule> = {
-    get: (target: ArrayNodule, p: PropertyKey, _receiver: any) => {
+const indexHandler: ProxyHandler<ArrayTraversalEntry> = {
+    get: (target: ArrayTraversalEntry, p: PropertyKey, _receiver: any) => {
         const actualrealresult = (target as any)[p];
         if (actualrealresult === undefined) {
-            const numInfo = numerous(p);
+            const numInfo = numberLike(p);
             if (numInfo) {
                 const result = target.child(numInfo.num);
-                return proxulise(result);
+                return withChildAccessors(result);
             }
         }
         return actualrealresult;
@@ -80,26 +80,26 @@ const indexHandler: ProxyHandler<ArrayNodule> = {
     // TODO: iterator support etc.
 };
 
-const keyHandler: ProxyHandler<MapNodule> = {
-    get: (target: MapNodule, p: PropertyKey, _receiver: any) => {
+const keyHandler: ProxyHandler<MapTraversalEntry> = {
+    get: (target: MapTraversalEntry, p: PropertyKey, _receiver: any) => {
         const actualrealresult = (target as any)[p];
         if ((typeof p === 'string') && (actualrealresult === undefined)) {
             const result = target.child(p);
-            return proxulise(result);
+            return withChildAccessors(result);
         }
         return actualrealresult;
     }
 };
 
-function proxuliseArray(n: ArrayNodule): any {
-    return new Proxy<ArrayNodule>(n, indexHandler);
+function withArrayIndexAccessors(n: ArrayTraversalEntry): any {
+    return new Proxy<ArrayTraversalEntry>(n, indexHandler);
 }
 
-function proxuliseMap(n: MapNodule): any {
-    return new Proxy<MapNodule>(n, keyHandler);
+function withMapKeyAccessors(n: MapTraversalEntry): any {
+    return new Proxy<MapTraversalEntry>(n, keyHandler);
 }
 
-function kr<T>(r: model.ResourceMapEntry | undefined, f: (v: model.Value | undefined) => T): T & Keyed {
+function withKeyRange<T>(r: model.ResourceMapEntry | undefined, f: (v: model.Value | undefined) => T): T & Keyed {
     const n = f(r?.value);
     const k: Keyed = {
         keyRange: () => {
@@ -112,7 +112,7 @@ function kr<T>(r: model.ResourceMapEntry | undefined, f: (v: model.Value | undef
     return { ...n, ...k };
 }
 
-function krDefTotes<T>(r: model.ResourceMapEntry, f: (v: model.Value) => T): T & Keyed {
+function withKeyRangeUnchecked<T>(r: model.ResourceMapEntry, f: (v: model.Value) => T): T & Keyed {
     const n = f(r.value);
     const k: Keyed = {
         keyRange: () => r.keyRange
@@ -120,44 +120,44 @@ function krDefTotes<T>(r: model.ResourceMapEntry, f: (v: model.Value) => T): T &
     return { ...n, ...k };
 }
 
-function typedNoduleOf(v: model.Value): Nodule {
+function traversalEntryOf(v: model.Value): TraversalEntry {
     switch (v.valueType) {
-        case 'string': return typedNoduleOfString(v);
-        case 'number': return typedNoduleOfNumber(v);
-        case 'boolean': return typedNoduleOfBoolean(v);
-        case 'array': return typedNoduleOfArray(v);
-        case 'map': return typedNoduleOfMap(v);
+        case 'string': return traversalEntryOfString(v);
+        case 'number': return traversalEntryOfNumber(v);
+        case 'boolean': return traversalEntryOfBoolean(v);
+        case 'array': return traversalEntryOfArray(v);
+        case 'map': return traversalEntryOfMap(v);
     }
 }
 
-function typedNoduleOf2(v: model.Value | undefined): Nodule {
+function safeTraversalEntryOf(v: model.Value | undefined): TraversalEntry {
     if (!v) {
-        return typedNoduleOfMap(undefined);
+        return traversalEntryOfMap(undefined);
     }
     switch (v.valueType) {
-        case 'string': return typedNoduleOfString(v);
-        case 'number': return typedNoduleOfNumber(v);
-        case 'boolean': return typedNoduleOfBoolean(v);
-        case 'array': return typedNoduleOfArray(v);
-        case 'map': return typedNoduleOfMap(v);
+        case 'string': return traversalEntryOfString(v);
+        case 'number': return traversalEntryOfNumber(v);
+        case 'boolean': return traversalEntryOfBoolean(v);
+        case 'array': return traversalEntryOfArray(v);
+        case 'map': return traversalEntryOfMap(v);
     }
 }
 
-function typedNoduleOfMap(impl: model.Value | undefined): MapNodule {
-    const core = typedNoduleOfMapCore(impl);
-    return proxuliseMap(core);
+function traversalEntryOfMap(impl: model.Value | undefined): MapTraversalEntry {
+    const core = traversalEntryOfMapCore(impl);
+    return withMapKeyAccessors(core);
 }
 
-function typedNoduleOfMapCore(impl: model.Value | undefined): MapNodule {
+function traversalEntryOfMapCore(impl: model.Value | undefined): MapTraversalEntry {
     if (!impl || impl.valueType !== 'map') {
         return {
             type: () => impl ? 'not-valid' : 'not-present',
-            child: (_key: string) => kr(undefined, typedNoduleOfMap),
-            string: (_key: string) => kr(undefined, typedNoduleOfString),
-            number: (_key: string) => kr(undefined, typedNoduleOfNumber),
-            boolean: (_key: string) => kr(undefined, typedNoduleOfBoolean),
-            array: (_key: string) => kr(undefined, typedNoduleOfArray),
-            map: (_key: string) => kr(undefined, typedNoduleOfMap),
+            child: (_key: string) => withKeyRange(undefined, traversalEntryOfMap),
+            string: (_key: string) => withKeyRange(undefined, traversalEntryOfString),
+            number: (_key: string) => withKeyRange(undefined, traversalEntryOfNumber),
+            boolean: (_key: string) => withKeyRange(undefined, traversalEntryOfBoolean),
+            array: (_key: string) => withKeyRange(undefined, traversalEntryOfArray),
+            map: (_key: string) => withKeyRange(undefined, traversalEntryOfMap),
             exists: () => !!impl,
             valid: () => false,
             items: () => { throw new Error('element is not an array'); },
@@ -165,33 +165,33 @@ function typedNoduleOfMapCore(impl: model.Value | undefined): MapNodule {
     }
     return {
         type: () => 'map',
-        child: (key: string) => kr(impl.entries[key], typedNoduleOf2),
-        string: (key: string) => kr(impl.entries[key], typedNoduleOfString),
-        number: (key: string) => kr(impl.entries[key], typedNoduleOfNumber),
-        boolean: (key: string) => kr(impl.entries[key], typedNoduleOfBoolean),
-        array: (key: string) => kr(impl.entries[key], typedNoduleOfArray),
-        map: (key: string) => kr(impl.entries[key], typedNoduleOfMap),
+        child: (key: string) => withKeyRange(impl.entries[key], safeTraversalEntryOf),
+        string: (key: string) => withKeyRange(impl.entries[key], traversalEntryOfString),
+        number: (key: string) => withKeyRange(impl.entries[key], traversalEntryOfNumber),
+        boolean: (key: string) => withKeyRange(impl.entries[key], traversalEntryOfBoolean),
+        array: (key: string) => withKeyRange(impl.entries[key], traversalEntryOfArray),
+        map: (key: string) => withKeyRange(impl.entries[key], traversalEntryOfMap),
         exists: () => true,
         valid: () => true,
-        items: () => new Map<string, Nodule>(Object.entries(impl.entries).map(([k, v]) => [k, krDefTotes(v, typedNoduleOf)])),
+        items: () => new Map<string, TraversalEntry>(Object.entries(impl.entries).map(([k, v]) => [k, withKeyRangeUnchecked(v, traversalEntryOf)])),
     };
 }
 
-function typedNoduleOfArray(impl: model.Value | undefined): ArrayNodule {
-    const core = typedNoduleOfArrayCore(impl);
-    return proxuliseArray(core);
+function traversalEntryOfArray(impl: model.Value | undefined): ArrayTraversalEntry {
+    const core = traversalEntryOfArrayCore(impl);
+    return withArrayIndexAccessors(core);
 }
 
-function typedNoduleOfArrayCore(impl: model.Value | undefined): ArrayNodule {
+function traversalEntryOfArrayCore(impl: model.Value | undefined): ArrayTraversalEntry {
     if (!impl || impl.valueType !== 'array') {
         return {
             type: () => impl ? 'not-valid' : 'not-present',
-            child: (_key: number) => kr(undefined, typedNoduleOfMap),
-            string: (_key: number) => typedNoduleOfString(undefined),
-            number: (_key: number) => typedNoduleOfNumber(undefined),
-            boolean: (_key: number) => typedNoduleOfBoolean(undefined),
-            array: (_key: number) => typedNoduleOfArray(undefined),
-            map: (_key: number) => typedNoduleOfMap(undefined),
+            child: (_key: number) => withKeyRange(undefined, traversalEntryOfMap),
+            string: (_key: number) => traversalEntryOfString(undefined),
+            number: (_key: number) => traversalEntryOfNumber(undefined),
+            boolean: (_key: number) => traversalEntryOfBoolean(undefined),
+            array: (_key: number) => traversalEntryOfArray(undefined),
+            map: (_key: number) => traversalEntryOfMap(undefined),
             exists: () => !!impl,
             valid: () => false,
             items: () => { throw new Error('element is not an array'); },
@@ -199,15 +199,15 @@ function typedNoduleOfArrayCore(impl: model.Value | undefined): ArrayNodule {
     }
     return {
         type: () => 'array',
-        child: (key: number) => typedNoduleOf2(impl.items[key]),
-        string: (key: number) => typedNoduleOfString(impl.items[key]),
-        number: (key: number) => typedNoduleOfNumber(impl.items[key]),
-        boolean: (key: number) => typedNoduleOfBoolean(impl.items[key]),
-        array: (key: number) => typedNoduleOfArray(impl.items[key]),
-        map: (key: number) => typedNoduleOfMap(impl.items[key]),
+        child: (key: number) => safeTraversalEntryOf(impl.items[key]),
+        string: (key: number) => traversalEntryOfString(impl.items[key]),
+        number: (key: number) => traversalEntryOfNumber(impl.items[key]),
+        boolean: (key: number) => traversalEntryOfBoolean(impl.items[key]),
+        array: (key: number) => traversalEntryOfArray(impl.items[key]),
+        map: (key: number) => traversalEntryOfMap(impl.items[key]),
         exists: () => true,
         valid: () => true,
-        items: () => impl.items.map((i) => typedNoduleOf(i)),
+        items: () => impl.items.map((i) => traversalEntryOf(i)),
     };
 }
 
@@ -252,16 +252,16 @@ function getRawText(v: model.Value | undefined) {
     return v.rawText;
 }
 
-function noduleType(expected: NoduleType, v: model.Value | undefined): NoduleType {
+function validatedEntryType(expected: TraversalEntryType, v: model.Value | undefined): TraversalEntryType {
     if (!v) {
         return 'not-present';
     }
     return v.valueType === expected ? v.valueType : 'not-valid';
 }
 
-function typedNoduleOfString(impl: model.Value | undefined): ScalarNodule<string> {
+function traversalEntryOfString(impl: model.Value | undefined): ScalarTraversalEntry<string> {
     return {
-        type: () => noduleType('string', impl),
+        type: () => validatedEntryType('string', impl),
         value: () => {
             checkString(impl);
             return impl.value;
@@ -276,9 +276,9 @@ function typedNoduleOfString(impl: model.Value | undefined): ScalarNodule<string
     };
 }
 
-function typedNoduleOfNumber(impl: model.Value | undefined): ScalarNodule<number> {
+function traversalEntryOfNumber(impl: model.Value | undefined): ScalarTraversalEntry<number> {
     return {
-        type: () => noduleType('number', impl),
+        type: () => validatedEntryType('number', impl),
         value: () => {
             checkNumber(impl);
             return impl.value;
@@ -293,9 +293,9 @@ function typedNoduleOfNumber(impl: model.Value | undefined): ScalarNodule<number
     };
 }
 
-function typedNoduleOfBoolean(impl: model.Value | undefined): ScalarNodule<boolean> {
+function traversalEntryOfBoolean(impl: model.Value | undefined): ScalarTraversalEntry<boolean> {
     return {
-        type: () => noduleType('boolean', impl),
+        type: () => validatedEntryType('boolean', impl),
         value: () => {
             checkBoolean(impl);
             return impl.value;
