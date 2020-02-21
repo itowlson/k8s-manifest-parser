@@ -59,6 +59,84 @@ export function convenientify2(impl: model.ResourceParse): MapNodule {
     return typedNoduleOfMap({ valueType: 'map', entries: impl.entries });
 }
 
+// These don't work because they don't intercept keys/indexes that
+// don't exist
+
+// function indexulise(nodule: ArrayNodule): ArrayNodule {
+//     const items = nodule.items();
+//     const indexed: any = {};
+//     for (const index in items) {
+//         indexed[index] = items[index];
+//     }
+//     return { ...nodule, ...indexed };
+// }
+
+// function accessorise(nodule: MapNodule): MapNodule {
+//     const items = nodule.items();
+//     const keyed: any = {};
+//     for (const [key, value] of items.entries()) {
+//         keyed[key] = value;
+//     }
+//     return { ...nodule, ...keyed };
+// }
+
+function proxulise(n: Nodule): any {
+    switch (n.type()) {
+        case 'array':
+            return proxuliseArray(n as ArrayNodule);
+        case 'map':
+        case 'not-valid':
+        case 'not-present':
+            return proxuliseMap(n as MapNodule);
+        default: return n;
+    }
+}
+
+function numerous(p: PropertyKey): { num: number } | undefined {
+    if (typeof(p) === 'number') {
+        return { num: p };
+    }
+    const numbery = !isNaN(p as any);
+    if (numbery) {
+        return { num: Number.parseInt(p as any) };
+    }
+    return undefined;
+}
+
+const indexHandler: ProxyHandler<ArrayNodule> = {
+    get: (target: ArrayNodule, p: PropertyKey, _receiver: any) => {
+        const actualrealresult = (target as any)[p];
+        if (actualrealresult === undefined) {
+            const numInfo = numerous(p);
+            if (numInfo) {
+                const result = target.child(numInfo.num);
+                return proxulise(result);
+            }
+        }
+        return actualrealresult;
+    }
+    // TODO: iterator support etc.
+};
+
+const keyHandler: ProxyHandler<MapNodule> = {
+    get: (target: MapNodule, p: PropertyKey, _receiver: any) => {
+        const actualrealresult = (target as any)[p];
+        if ((typeof p === 'string') && (actualrealresult === undefined)) {
+            const result = target.child(p);
+            return proxulise(result);
+        }
+        return actualrealresult;
+    }
+};
+
+function proxuliseArray(n: ArrayNodule): any {
+    return new Proxy<ArrayNodule>(n, indexHandler);
+}
+
+function proxuliseMap(n: MapNodule): any {
+    return new Proxy<MapNodule>(n, keyHandler);
+}
+
 function kr<T>(r: model.ResourceMapEntry | undefined, f: (v: model.Value | undefined) => T): T & Keyed {
     const n = f(r?.value);
     const k: Keyed = {
@@ -104,6 +182,11 @@ function typedNoduleOf2(v: model.Value | undefined): Nodule {
 }
 
 function typedNoduleOfMap(impl: model.Value | undefined): MapNodule {
+    const core = typedNoduleOfMapCore(impl);
+    return proxuliseMap(core);
+}
+
+function typedNoduleOfMapCore(impl: model.Value | undefined): MapNodule {
     if (!impl || impl.valueType !== 'map') {
         return {
             type: () => impl ? 'not-valid' : 'not-present',
@@ -133,6 +216,11 @@ function typedNoduleOfMap(impl: model.Value | undefined): MapNodule {
 }
 
 function typedNoduleOfArray(impl: model.Value | undefined): ArrayNodule {
+    const core = typedNoduleOfArrayCore(impl);
+    return proxuliseArray(core);
+}
+
+function typedNoduleOfArrayCore(impl: model.Value | undefined): ArrayNodule {
     if (!impl || impl.valueType !== 'array') {
         return {
             type: () => impl ? 'not-valid' : 'not-present',
