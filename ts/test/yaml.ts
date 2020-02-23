@@ -45,6 +45,14 @@ describe('YAML parser', () => {
         assertEqualsNumberValue(result.entries['floaty'], 4.5);
         assertEqualsBooleanValue(result.entries['booly'], true);
     });
+    it('should provide access to raw text', () => {
+        const result = parser.parseYAML('stringy: foo\ninty: 123\nfloaty: 4.5\nbooly: true')[0];
+        assert.equal(Object.keys(result.entries).length, 4);
+        assertEqualsRawText(result.entries['stringy'], 'foo');
+        assertEqualsRawText(result.entries['inty'], '123');
+        assertEqualsRawText(result.entries['floaty'], '4.5');
+        assertEqualsRawText(result.entries['booly'], 'true');
+    });
 
     it('should represent nested entries as maps', () => {
         const result = parser.parseYAML('apiVersion: apps/v1\nkind: Namespace\nmetadata:\n  name: foo\n  generation: 123\n  labels:\n    hello: world')[0];
@@ -212,7 +220,142 @@ describe('YAML parser', () => {
         assertEqualsStringValue(result.entries['foo'], 'hello\nworld\n');
         assertEqualsStringValue(result.entries['bar'], 'quux');
     });
+
+    const badIdeaTestText = arrayTestText + '\nmetadata:\n  name: foo\n  generation: 123\n  labels:\n    hello: world';
+
+    it('can traverse in a weak-typed way', () => {
+        const result = parser.parseYAML(badIdeaTestText)[0];
+        const c = parser.asTraversable(result) as any;
+
+        const apiVersion = c.child('apiVersion');
+        assert.equal(apiVersion.exists(), true);
+        assert.equal(apiVersion.value(), 'apps/v1');
+        assert.equal(apiVersion.keyRange().start, 0);
+        assert.equal(apiVersion.keyRange().end, 10);
+        assert.equal(apiVersion.range().start, 12);
+        assert.equal(apiVersion.range().end, 19);
+
+        assert.equal(c.string('zzzzapiVersion').exists(), false);
+
+        const kws = c.child('keywords');
+        assert.equal(kws.exists(), true);
+        assert.equal(kws.items().length, 3);
+        assert.equal(kws.items()[1].type(), 'number');
+        assert.equal(kws.string(0).value(), 'foo');
+        assert.equal(kws.number(1).value(), 123);
+        assert.equal(kws.boolean(2).value(), true);
+
+        assert.equal(c.child('metadata').child('name').value(), 'foo');
+        assert.equal(c.child('metadata').child('name').exists(), true);
+        assert.equal(c.child('metadata').child('gnome').exists(), false);
+        assert.equal(c.child('metadata').child('labels').child('hello').value(), 'world');
+        assert.equal(c.child('metadata').child('labels').child('zzzzzzzzhello').exists(), false);
+
+        assert.equal(c.child('metadata').map('labelles').string('hello').exists(), false);
+
+        assert.equal(c.child('metadata').child('labels').child('hello').valid(), true);
+    });
+    it('can traverse in a weak-typed using native JS idioms', () => {
+        const result = parser.parseYAML(badIdeaTestText)[0];
+        const c = parser.asTraversable(result) as any;
+
+        const apiVersion = c.apiVersion;
+        assert.equal(apiVersion.exists(), true);
+        assert.equal(apiVersion.value(), 'apps/v1');
+        assert.equal(apiVersion.keyRange().start, 0);
+        assert.equal(apiVersion.keyRange().end, 10);
+        assert.equal(apiVersion.range().start, 12);
+        assert.equal(apiVersion.range().end, 19);
+
+        assert.equal(c['zzzzapiVersion'].exists(), false);
+
+        const kws = c.keywords;
+        assert.equal(kws.exists(), true);
+        assert.equal(kws.items().length, 3);
+        assert.equal(kws.items()[1].type(), 'number');
+        assert.equal(kws[0].value(), 'foo');
+        assert.equal(kws[1].value(), 123);
+        assert.equal(kws[2].value(), true);
+
+        assert.equal(c.metadata.name.value(), 'foo');
+        assert.equal(c.metadata.name.exists(), true);
+        assert.equal(c.metadata.gnome.exists(), false);
+        assert.equal(c.metadata.labels.hello.value(), 'world');
+        assert.equal(c.metadata.labels.zzzzzzzzhello.exists(), false);
+
+        assert.equal(c.metadata.labelles.hello.exists(), false);
+
+        assert.equal(c.metadata.labels.hello.valid(), true);
+    });
+
+    it('might not be a terrible idea either', () => {
+        const result = parser.parseYAML(badIdeaTestText)[0];
+        const c = parser.asTraversable(result);
+
+        const apiVersion = c.string('apiVersion');
+        assert.equal(apiVersion.exists(), true);
+        assert.equal(apiVersion.value(), 'apps/v1');
+        assert.equal(apiVersion.keyRange().start, 0);
+        assert.equal(apiVersion.keyRange().end, 10);
+        assert.equal(apiVersion.range().start, 12);
+        assert.equal(apiVersion.range().end, 19);
+
+        assert.equal(c.string('zzzzapiVersion').exists(), false);
+
+        const kws = c.array('keywords');
+        assert.equal(kws.exists(), true);
+        assert.equal(kws.items().length, 3);
+        assert.equal(kws.items()[1].type(), 'number');
+        assert.equal(kws.string(0).value(), 'foo');
+        assert.equal(kws.number(1).value(), 123);
+        assert.equal(kws.boolean(2).value(), true);
+
+        assert.equal(c.map('metadata').string('name').value(), 'foo');
+        assert.equal(c.map('metadata').string('name').exists(), true);
+        assert.equal(c.map('metadata').string('gnome').exists(), false);
+        assert.equal(c.map('metadata').map('labels').string('hello').value(), 'world');
+        assert.equal(c.map('metadata').map('labels').string('zzzzzzzzhello').exists(), false);
+
+        assert.equal(c.map('metadata').map('labelles').string('hello').exists(), false);
+
+        assert.equal(c.map('metadata').map('labels').string('hello').valid(), true);
+        assert.equal(c.map('metadata').map('labels').number('hello').valid(), false);
+    });
+    it('might actually be coming together', () => {
+        const result = parser.parseYAML(badIdeaTestText)[0];
+        const c = parser.asTraversable(result);
+
+        const kws = c.array('keywords');
+        assert.equal(kws.string(0).rawText(), 'foo');
+        assert.equal(kws.number(1).rawText(), '123');
+        assert.equal(kws.boolean(2).rawText(), 'true');
+    });
+    it('can provide raw text and range even when it contains the wrong kind of data', () => {
+        const result = parser.parseYAML(badIdeaTestText)[0];
+        const c = parser.asTraversable(result);
+
+        const kws = c.array('keywords');
+        assert.equal(kws.number(0).rawText(), 'foo');
+        assert.equal(kws.number(0).range().start, 32);
+        assert.equal(kws.number(0).range().end, 35);
+    });
+    it('tells you what is wrong when your type expectations are not fulfilled', () => {
+        const result = parser.parseYAML(badIdeaTestText)[0];
+        const c = parser.asTraversable(result);
+
+        assert.equal(c.array('metadata').type(), 'not-valid');
+        assert.equal(c.array('zzzzzzz').type(), 'not-present');
+
+        const md = c.map('metadata');
+        assert.equal(md.number('name').type(), 'not-valid');
+        assert.equal(md.number('zzzzzzz').type(), 'not-present');
+    });
 });
+
+function assertEqualsRawText(entry: parser.ResourceMapEntry, expected: string): void {
+    assert.equal(['string', 'number', 'boolean'].includes(entry.value.valueType), true);
+    assert.equal((entry.value as (parser.StringValue | parser.NumberValue | parser.BooleanValue)).rawText, expected);
+}
 
 function assertEqualsStringValue(entry: parser.ResourceMapEntry, expected: string): void {
     assert.equal(entry.value.valueType, 'string');
