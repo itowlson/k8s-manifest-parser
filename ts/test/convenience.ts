@@ -118,36 +118,6 @@ describe('the typed-but-only-weakly convenience layer', () => {
 describe('terse JavaScript-ish convenience layer', () => {
     const doc = parser.asTraversable(parse) as any;
 
-    it('can traverse in a weak-typed way', () => {
-        const apiVersion = doc.child('apiVersion');
-        assert.equal(apiVersion.exists(), true);
-        assert.equal(apiVersion.value(), 'apps/v1');
-        assert.equal(apiVersion.keyRange().start, 0);
-        assert.equal(apiVersion.keyRange().end, 10);
-        assert.equal(apiVersion.range().start, 12);
-        assert.equal(apiVersion.range().end, 19);
-
-        assert.equal(doc.string('zzzzapiVersion').exists(), false);
-
-        const kws = doc.child('keywords');
-        assert.equal(kws.exists(), true);
-        assert.equal(kws.items().length, 3);
-        assert.equal(kws.items()[1].type(), 'number');
-        assert.equal(kws.string(0).value(), 'foo');
-        assert.equal(kws.number(1).value(), 123);
-        assert.equal(kws.boolean(2).value(), true);
-
-        const md = doc.child('metadata');
-        assert.equal(md.child('name').value(), 'foo');
-        assert.equal(md.child('name').exists(), true);
-        assert.equal(md.child('gnome').exists(), false);
-        assert.equal(md.child('labels').child('hello').value(), 'world');
-        assert.equal(md.child('labels').child('zzzzzzzzhello').exists(), false);
-
-        assert.equal(md.map('labelles').string('hello').exists(), false);
-
-        assert.equal(md.child('labels').child('hello').valid(), true);
-    });
     it('can access top-level entries directly as properties', () => {
         const apiVersion = doc.apiVersion;
         assert.equal(apiVersion.exists(), true);
