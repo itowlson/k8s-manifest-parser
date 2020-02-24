@@ -53,75 +53,77 @@ describe('JSON parser', () => {
         assertEqualsRawText(result.entries['booly'], 'true');
     });
 
-    // it('should represent nested entries as maps', () => {
-    //     const result = parser.parseYAML('apiVersion: apps/v1\nkind: Namespace\nmetadata:\n  name: foo\n  generation: 123\n  labels:\n    hello: world')[0];
-    //     assert.equal(Object.keys(result.entries).length, 3);
-    //     assert.equal(result.entries['apiVersion'].value.valueType, 'string');
-    //     assert.equal(result.entries['kind'].value.valueType, 'string');
-    //     assert.equal(result.entries['metadata'].value.valueType, 'map');
-    // });
-    // it('should represent nested hierarchies', () => {
-    //     const result = parser.parseYAML('apiVersion: apps/v1\nkind: Namespace\nmetadata:\n  name: foo\n  generation: 123\n  labels:\n    hello: world')[0];
-    //     const metadata = result.entries['metadata'].value;
-    //     if (metadata.valueType !== 'map') {
-    //         assert.fail('expected top level metadata item to be a map');
-    //         return;
-    //     }
-    //     const labels = metadata.entries['labels'].value;
-    //     if (labels.valueType !== 'map') {
-    //         assert.fail('expected metadata.labels item to be a map');
-    //         return;
-    //     }
+    const nested = `{ "apiVersion": "apps/v1",\n"kind": "Namespace",\n"metadata": {\n  "name": "foo",\n  "generation": 123,\n  "labels": {\n    "hello": "world"\n  }\n} }`;
 
-    //     assert.equal(Object.keys(metadata.entries).length, 3);
-    //     assertEqualsStringValue(metadata.entries['name'], 'foo');
-    //     assertEqualsNumberValue(metadata.entries['generation'], 123);
+    it('should represent nested entries as maps', () => {
+        const result = parser.parseJSON(nested)[0];
+        assert.equal(Object.keys(result.entries).length, 3);
+        assert.equal(result.entries['apiVersion'].value.valueType, 'string');
+        assert.equal(result.entries['kind'].value.valueType, 'string');
+        assert.equal(result.entries['metadata'].value.valueType, 'map');
+    });
+    it('should represent nested hierarchies', () => {
+        const result = parser.parseJSON(nested)[0];
+        const metadata = result.entries['metadata'].value;
+        if (metadata.valueType !== 'map') {
+            assert.fail('expected top level metadata item to be a map');
+            return;
+        }
+        const labels = metadata.entries['labels'].value;
+        if (labels.valueType !== 'map') {
+            assert.fail('expected metadata.labels item to be a map');
+            return;
+        }
 
-    //     assert.equal(Object.keys(labels.entries).length, 1);
-    //     assertEqualsStringValue(labels.entries['hello'], 'world');
-    // });
-    // it('should give the correct key ranges for nested hierarchies', () => {
-    //     const result = parser.parseYAML('apiVersion: apps/v1\nkind: Namespace\nmetadata:\n  name: foo\n  generation: 123\n  labels:\n    hello: world')[0];
-    //     const metadata = result.entries['metadata'].value;
-    //     if (metadata.valueType !== 'map') {
-    //         assert.fail('expected top level metadata item to be a map');
-    //         return;
-    //     }
-    //     const labels = metadata.entries['labels'].value;
-    //     if (labels.valueType !== 'map') {
-    //         assert.fail('expected metadata.labels item to be a map');
-    //         return;
-    //     }
+        assert.equal(Object.keys(metadata.entries).length, 3);
+        assertEqualsStringValue(metadata.entries['name'], 'foo');
+        assertEqualsNumberValue(metadata.entries['generation'], 123);
 
-    //     assert.equal(metadata.entries['name'].keyRange.start, 48);  // NOTE: don't naively subtract column numbers - '\n' is two columns but only one character!
-    //     assert.equal(metadata.entries['name'].keyRange.end, 52);
-    //     assert.equal(metadata.entries['generation'].keyRange.start, 60);
-    //     assert.equal(metadata.entries['generation'].keyRange.end, 70);
-    //     assert.equal(metadata.entries['labels'].keyRange.start, 78);
-    //     assert.equal(metadata.entries['labels'].keyRange.end, 84);
-    //     assert.equal(labels.entries['hello'].keyRange.start, 90);
-    //     assert.equal(labels.entries['hello'].keyRange.end, 95);
-    // });
-    // it('should give the correct value ranges for nested hierarchies', () => {
-    //     const result = parser.parseYAML('apiVersion: apps/v1\nkind: Namespace\nmetadata:\n  name: foo\n  generation: 123\n  labels:\n    hello: world')[0];
-    //     const metadata = result.entries['metadata'].value;
-    //     if (metadata.valueType !== 'map') {
-    //         assert.fail('expected top level metadata item to be a map');
-    //         return;
-    //     }
-    //     const labels = metadata.entries['labels'].value;
-    //     if (labels.valueType !== 'map') {
-    //         assert.fail('expected metadata.labels item to be a map');
-    //         return;
-    //     }
+        assert.equal(Object.keys(labels.entries).length, 1);
+        assertEqualsStringValue(labels.entries['hello'], 'world');
+    });
+    it('should give the correct key ranges for nested hierarchies', () => {
+        const result = parser.parseJSON(nested)[0];
+        const metadata = result.entries['metadata'].value;
+        if (metadata.valueType !== 'map') {
+            assert.fail('expected top level metadata item to be a map');
+            return;
+        }
+        const labels = metadata.entries['labels'].value;
+        if (labels.valueType !== 'map') {
+            assert.fail('expected metadata.labels item to be a map');
+            return;
+        }
 
-    //     assert.equal(range(metadata.entries['name'].value).start, 54);  // NOTE: don't naively subtract column numbers - '\n' is two columns but only one character!
-    //     assert.equal(range(metadata.entries['name'].value).end, 57);
-    //     assert.equal(range(metadata.entries['generation'].value).start, 72);
-    //     assert.equal(range(metadata.entries['generation'].value).end, 75);
-    //     assert.equal(range(labels.entries['hello'].value).start, 97);
-    //     assert.equal(range(labels.entries['hello'].value).end, 102);
-    // });
+        assert.equal(metadata.entries['name'].keyRange.start, 64);  // NOTE: don't naively subtract column numbers - '\n' is two columns but only one character!
+        assert.equal(metadata.entries['name'].keyRange.end, 70);
+        assert.equal(metadata.entries['generation'].keyRange.start, 81);
+        assert.equal(metadata.entries['generation'].keyRange.end, 93);
+        assert.equal(metadata.entries['labels'].keyRange.start, 102);
+        assert.equal(metadata.entries['labels'].keyRange.end, 110);
+        assert.equal(labels.entries['hello'].keyRange.start, 118);
+        assert.equal(labels.entries['hello'].keyRange.end, 125);
+    });
+    it('should give the correct value ranges for nested hierarchies', () => {
+        const result = parser.parseJSON(nested)[0];
+        const metadata = result.entries['metadata'].value;
+        if (metadata.valueType !== 'map') {
+            assert.fail('expected top level metadata item to be a map');
+            return;
+        }
+        const labels = metadata.entries['labels'].value;
+        if (labels.valueType !== 'map') {
+            assert.fail('expected metadata.labels item to be a map');
+            return;
+        }
+
+        assert.equal(range(metadata.entries['name'].value).start, 72);  // NOTE: don't naively subtract column numbers - '\n' is two columns but only one character!
+        assert.equal(range(metadata.entries['name'].value).end, 77);
+        assert.equal(range(metadata.entries['generation'].value).start, 95);
+        assert.equal(range(metadata.entries['generation'].value).end, 98);
+        assert.equal(range(labels.entries['hello'].value).start, 127);
+        assert.equal(range(labels.entries['hello'].value).end, 134);
+    });
 
     // const arrayTestText = 'apiVersion: apps/v1\nkeywords:\n- foo\n- 123\n- true\nwidgets:\n- name: w1\n  size: 1\n- name: w2\n  size: 2';
     // it('should represent arrays as, you know, arrays', () => {
@@ -371,20 +373,20 @@ function assertEqualsBooleanValue(entry: parser.ResourceMapEntry, expected: bool
     assert.equal((entry.value as parser.BooleanValue).value, expected);
 }
 
-function assertEqualsString(value: parser.Value, expected: string): void {
-    assert.equal(value.valueType, 'string');
-    assert.equal((value as parser.StringValue).value, expected);
-}
+// function assertEqualsString(value: parser.Value, expected: string): void {
+//     assert.equal(value.valueType, 'string');
+//     assert.equal((value as parser.StringValue).value, expected);
+// }
 
-function assertEqualsNumber(value: parser.Value, expected: number): void {
-    assert.equal(value.valueType, 'number');
-    assert.equal((value as parser.NumberValue).value, expected);
-}
+// function assertEqualsNumber(value: parser.Value, expected: number): void {
+//     assert.equal(value.valueType, 'number');
+//     assert.equal((value as parser.NumberValue).value, expected);
+// }
 
-function assertEqualsBoolean(value: parser.Value, expected: boolean): void {
-    assert.equal(value.valueType, 'boolean');
-    assert.equal((value as parser.BooleanValue).value, expected);
-}
+// function assertEqualsBoolean(value: parser.Value, expected: boolean): void {
+//     assert.equal(value.valueType, 'boolean');
+//     assert.equal((value as parser.BooleanValue).value, expected);
+// }
 
 function range(value: parser.Value): parser.Range {
     switch (value.valueType) {
