@@ -10,6 +10,7 @@ export interface TraversalEntry {
     type(): TraversalEntryType;
     exists(): boolean;
     valid(): boolean;
+    parseNode(): model.Value | undefined;
 }
 
 export interface ArrayTraversalEntry extends TraversalEntry {
@@ -160,6 +161,7 @@ function traversalEntryOfMapCore(impl: model.Value | undefined): MapTraversalEnt
             boolean: (_key: string) => withKeyRange(undefined, traversalEntryOfBoolean),
             array: (_key: string) => withKeyRange(undefined, traversalEntryOfArray),
             map: (_key: string) => withKeyRange(undefined, traversalEntryOfMap),
+            parseNode: () => undefined,
             exists: () => !!impl,
             valid: () => false,
             items: () => { throw new Error('element is not an array'); },
@@ -173,6 +175,7 @@ function traversalEntryOfMapCore(impl: model.Value | undefined): MapTraversalEnt
         boolean: (key: string) => withKeyRange(impl.entries[key], traversalEntryOfBoolean),
         array: (key: string) => withKeyRange(impl.entries[key], traversalEntryOfArray),
         map: (key: string) => withKeyRange(impl.entries[key], traversalEntryOfMap),
+        parseNode: () => impl,
         exists: () => true,
         valid: () => true,
         items: () => new Map<string, TraversalEntry>(Object.entries(impl.entries).map(([k, v]) => [k, withKeyRangeUnchecked(v, traversalEntryOf)])),
@@ -194,6 +197,7 @@ function traversalEntryOfArrayCore(impl: model.Value | undefined): ArrayTraversa
             boolean: (_key: number) => traversalEntryOfBoolean(undefined),
             array: (_key: number) => traversalEntryOfArray(undefined),
             map: (_key: number) => traversalEntryOfMap(undefined),
+            parseNode: () => undefined,
             exists: () => !!impl,
             valid: () => false,
             items: () => { throw new Error('element is not an array'); },
@@ -207,6 +211,7 @@ function traversalEntryOfArrayCore(impl: model.Value | undefined): ArrayTraversa
         boolean: (key: number) => traversalEntryOfBoolean(impl.items[key]),
         array: (key: number) => traversalEntryOfArray(impl.items[key]),
         map: (key: number) => traversalEntryOfMap(impl.items[key]),
+        parseNode: () => impl,
         exists: () => true,
         valid: () => true,
         items: () => impl.items.map((i) => traversalEntryOf(i)),
@@ -273,6 +278,7 @@ function traversalEntryOfString(impl: model.Value | undefined): ScalarTraversalE
             return impl.range;
         },
         rawText: () => getRawText(impl),
+        parseNode: () => impl,
         exists: () => impl !== undefined,
         valid: () => impl !== undefined && impl.valueType === 'string'
     };
@@ -290,6 +296,7 @@ function traversalEntryOfNumber(impl: model.Value | undefined): ScalarTraversalE
             return impl.range;
         },
         rawText: () => getRawText(impl),
+        parseNode: () => impl,
         exists: () => impl !== undefined,
         valid: () => impl !== undefined && impl.valueType === 'number'
     };
@@ -307,6 +314,7 @@ function traversalEntryOfBoolean(impl: model.Value | undefined): ScalarTraversal
             return impl.range;
         },
         rawText: () => getRawText(impl),
+        parseNode: () => impl,
         exists: () => impl !== undefined,
         valid: () => impl !== undefined && impl.valueType === 'boolean'
     };

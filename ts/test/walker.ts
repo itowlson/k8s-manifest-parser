@@ -110,4 +110,62 @@ describe('AST walker', () => {
         parser.walk(simple, walker);
         assert.equal(count, 1);
     });
+
+    it('should be able to walk from a particular node', () => {
+        let count = 0;
+        const walker = {
+            onString: (_v: parser.Parented<parser.StringValue>) => {
+                ++count;
+            }
+        };
+        parser.walkFrom(test, (parser.asTraversable(test) as any).spec.podTemplate.spec, walker);
+        assert.equal(count, 2);
+    });
+
+    it('should provide ancestry information', () => {
+        const images = Array.of<parser.Parented<parser.StringValue>>();
+        const walker = {
+            onString: (v: parser.Parented<parser.StringValue>) => {
+                if (v.value.value.includes('image')) {
+                    images.push(v);
+                }
+            }
+        };
+        parser.walk(test, walker);
+        assert.equal(images.length, 2);
+
+        assert.equal(images[0].value.value, 'someimage:123');
+        assert.equal(images[0].ancestors.length, 6);
+        assertMap(ancestorAt(images[0], 0), 'image');
+        assertArray(ancestorAt(images[0], 1), 0);
+        assertMap(ancestorAt(images[0], 2), 'containers');
+        assertMap(ancestorAt(images[0], 3), 'spec');
+        assertMap(ancestorAt(images[0], 4), 'podTemplate');
+        assertMap(ancestorAt(images[0], 5), 'spec');
+
+        assert.equal(images[1].value.value, 'someotherimage:456');
+        assert.equal(images[1].ancestors.length, 6);
+        assertArray(ancestorAt(images[1], 1), 1);
+        assertMap(ancestorAt(images[1], 2), 'containers');
+    });
 });
+
+function ancestorAt(entry: parser.Parented<parser.Value>, level: number): parser.Ancestor {
+    return entry.ancestors[level];
+}
+
+function assertArray(entry: parser.Ancestor, expectedIndex: number): void {
+    assert.equal(entry.kind, 'array');
+    assert.equal((entry as parser.ArrayAncestor).index, expectedIndex);
+}
+
+function assertMap(entry: parser.Ancestor, expectedKey: string, expectedKeyRange?: parser.Range): void {
+    assert.equal(entry.kind, 'map');
+    assert.equal((entry as parser.MapAncestor).key, expectedKey);
+
+    if (expectedKeyRange) {
+        const actualKeyRange = (entry as parser.MapAncestor).keyRange;
+        assert.equal(actualKeyRange.start, expectedKeyRange.start);
+        assert.equal(actualKeyRange.end, expectedKeyRange.end);
+    }
+}

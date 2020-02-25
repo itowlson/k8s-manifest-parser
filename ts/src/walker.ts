@@ -1,19 +1,39 @@
 import * as model from './model';
+import * as traversal from './convenience';
 
 export function walk(resource: model.ResourceParse, walker: ResourceWalker): void {
     walkImpl({ valueType: 'map', entries: resource.entries }, [], walker);
 }
 
+export function walkFromValue(resource: model.ResourceParse, from: model.Value, walker: ResourceWalker): void {
+    const ignoreAboveWalker = {
+        onNode: (v: Parented<model.Value>) => {
+            if (v.value === from) {
+                walkImpl(from, v.ancestors, walker);
+            }
+        }
+    };
+    walk(resource, ignoreAboveWalker);
+}
+
+export function walkFrom(resource: model.ResourceParse, from: traversal.TraversalEntry, walker: ResourceWalker): void {
+    const fromValue = from.parseNode();
+    if (!fromValue) {
+        return;
+    }
+    walkFromValue(resource, fromValue, walker);
+}
+
 export interface MapAncestor {
     readonly kind: 'map';
-    readonly map: model.MapValue;
+    readonly value: model.MapValue;
     readonly key: string;
     readonly keyRange: model.Range;
 }
 
 export interface ArrayAncestor {
     readonly kind: 'array';
-    readonly array: model.ArrayValue;
+    readonly value: model.ArrayValue;
     readonly index: number;
 }
 
@@ -58,7 +78,7 @@ function walkImpl(v: model.Value, ancestors: ReadonlyArray<Ancestor>, walker: Re
                 walker.onArray({ value: v, ancestors: ancestors });
             }
             for (const [index, item] of v.items.entries()) {
-                walkImpl(item, [{ kind: 'array', array: v, index: index }, ...ancestors], walker);
+                walkImpl(item, [{ kind: 'array', value: v, index: index }, ...ancestors], walker);
             }
             break;
         case 'map':
@@ -66,7 +86,7 @@ function walkImpl(v: model.Value, ancestors: ReadonlyArray<Ancestor>, walker: Re
                 walker.onMap({ value: v, ancestors: ancestors });
             }
             for (const [key, child] of Object.entries(v.entries)) {
-                walkImpl(child.value, [{ kind: 'map', map: v, key: key, keyRange: child.keyRange }, ...ancestors], walker);
+                walkImpl(child.value, [{ kind: 'map', value: v, key: key, keyRange: child.keyRange }, ...ancestors], walker);
             }
             break;
     }
