@@ -27,14 +27,14 @@ export function walkFrom(resource: model.ResourceParse, from: traversal.Traversa
 export interface MapAncestor {
     readonly kind: 'map';
     readonly value: model.MapValue;
-    readonly key: string;
+    readonly at: string;
     readonly keyRange: model.Range;
 }
 
 export interface ArrayAncestor {
     readonly kind: 'array';
     readonly value: model.ArrayValue;
-    readonly index: number;
+    readonly at: number;
 }
 
 export type Ancestor = MapAncestor | ArrayAncestor;
@@ -78,7 +78,7 @@ function walkImpl(v: model.Value, ancestors: ReadonlyArray<Ancestor>, walker: Re
                 walker.onArray({ value: v, ancestors: ancestors });
             }
             for (const [index, item] of v.items.entries()) {
-                walkImpl(item, [{ kind: 'array', value: v, index: index }, ...ancestors], walker);
+                walkImpl(item, [{ kind: 'array', value: v, at: index }, ...ancestors], walker);
             }
             break;
         case 'map':
@@ -86,7 +86,7 @@ function walkImpl(v: model.Value, ancestors: ReadonlyArray<Ancestor>, walker: Re
                 walker.onMap({ value: v, ancestors: ancestors });
             }
             for (const [key, child] of Object.entries(v.entries)) {
-                walkImpl(child.value, [{ kind: 'map', value: v, key: key, keyRange: child.keyRange }, ...ancestors], walker);
+                walkImpl(child.value, [{ kind: 'map', value: v, at: key, keyRange: child.keyRange }, ...ancestors], walker);
             }
             break;
     }

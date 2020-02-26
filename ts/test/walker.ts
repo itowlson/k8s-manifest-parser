@@ -138,6 +138,32 @@ describe('AST walker', () => {
         assert.equal(images[0].ancestors.length, 6);
         assertMap(ancestorAt(images[0], 0), 'image');
         assertArray(ancestorAt(images[0], 1), 0);
+        assertMap(ancestorAt(images[0], 2), 'containers', { start: testText.indexOf('containers'), end: testText.indexOf('containers') + 10 });
+        assertMap(ancestorAt(images[0], 3), 'spec');
+        assertMap(ancestorAt(images[0], 4), 'podTemplate', { start: testText.indexOf('podTemplate'), end: testText.indexOf('podTemplate') + 11 });
+        assertMap(ancestorAt(images[0], 5), 'spec', { start: testText.indexOf('spec'), end: testText.indexOf('spec') + 4 });
+
+        assert.equal(images[1].value.value, 'someotherimage:456');
+        assert.equal(images[1].ancestors.length, 6);
+        assertArray(ancestorAt(images[1], 1), 1);
+        assertMap(ancestorAt(images[1], 2), 'containers');
+    });
+    it('should provide ancestry information even when looking only below a node', () => {
+        const images = Array.of<parser.Parented<parser.StringValue>>();
+        const walker = {
+            onString: (v: parser.Parented<parser.StringValue>) => {
+                if (v.value.value.includes('image')) {
+                    images.push(v);
+                }
+            }
+        };
+        parser.walkFrom(test, (parser.asTraversable(test) as any).spec.podTemplate.spec, walker);
+        assert.equal(images.length, 2);
+
+        assert.equal(images[0].value.value, 'someimage:123');
+        assert.equal(images[0].ancestors.length, 6);
+        assertMap(ancestorAt(images[0], 0), 'image');
+        assertArray(ancestorAt(images[0], 1), 0);
         assertMap(ancestorAt(images[0], 2), 'containers');
         assertMap(ancestorAt(images[0], 3), 'spec');
         assertMap(ancestorAt(images[0], 4), 'podTemplate');
@@ -156,12 +182,12 @@ function ancestorAt(entry: parser.Parented<parser.Value>, level: number): parser
 
 function assertArray(entry: parser.Ancestor, expectedIndex: number): void {
     assert.equal(entry.kind, 'array');
-    assert.equal((entry as parser.ArrayAncestor).index, expectedIndex);
+    assert.equal(entry.at, expectedIndex);
 }
 
 function assertMap(entry: parser.Ancestor, expectedKey: string, expectedKeyRange?: parser.Range): void {
     assert.equal(entry.kind, 'map');
-    assert.equal((entry as parser.MapAncestor).key, expectedKey);
+    assert.equal(entry.at, expectedKey);
 
     if (expectedKeyRange) {
         const actualKeyRange = (entry as parser.MapAncestor).keyRange;
