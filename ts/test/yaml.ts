@@ -226,6 +226,44 @@ describe('YAML parser', () => {
         assert.equal(result.entries['naughty'].value.valueType, 'missing');
         assert.equal(result.entries['nice'].value.valueType, 'map');
     });
+
+    const helmTemplateText = `
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "nginx-lego.fullname" . }}-default-backend
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: {{ template "nginx-lego.fullname" . }}-default-backend
+`;
+
+    it('should handle Helm template syntax', () => {
+        const result = parser.parseHelmTemplate(helmTemplateText)[0];
+        assertEqualsStringValue(result.entries['kind'], 'Service');
+
+        const md = result.entries['metadata'].value as parser.MapValue;
+        assertEqualsStringValue(md.entries['name'], '{{ template "nginx-lego.fullname" . }}-default-backend');
+
+        const labels = md.entries['labels'].value as parser.MapValue;
+        assertEqualsStringValue(labels.entries['chart'], '"{{ .Chart.Name }}-{{ .Chart.Version }}"');
+
+        const chartTemplateTextRange = range(labels.entries['chart'].value);
+        const chartTemplateTextExpectedIndex = helmTemplateText.indexOf('"{{ .Chart.Name }}-{{ .Chart.Version }}"');
+        assert.equal(chartTemplateTextRange.start, chartTemplateTextExpectedIndex);
+        assert.equal(chartTemplateTextRange.end, chartTemplateTextExpectedIndex + '"{{ .Chart.Name }}-{{ .Chart.Version }}"'.length);
+
+        const spec = result.entries['spec'].value as parser.MapValue;
+        assertEqualsStringValue(spec.entries['type'], 'ClusterIP');
+        const ports = spec.entries['ports'].value as parser.ArrayValue;
+        const ports0 = ports.items[0] as parser.MapValue;
+        assertEqualsNumberValue(ports0.entries['port'], 80);
+    });
 });
 
 function assertEqualsRawText(entry: parser.ResourceMapEntry, expected: string): void {
