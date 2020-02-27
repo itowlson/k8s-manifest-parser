@@ -2,4 +2,4 @@
 
 ## 0.0.1
 
-* Initial placeholder release
+* Basic parsing of YAML, JSON and Helm templates for use in writing Kubernetes linters
