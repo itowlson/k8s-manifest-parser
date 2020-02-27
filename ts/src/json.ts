@@ -28,6 +28,7 @@ function dequoteValue(v: model.Value): model.Value {
         case 'string':
         case 'number':
         case 'boolean':
+        case 'missing':
             return v;
         case 'array':
             return { valueType: 'array', items: v.items.map(dequoteValue) };

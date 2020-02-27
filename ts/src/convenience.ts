@@ -127,6 +127,7 @@ function traversalEntryOf(v: model.Value): TraversalEntry {
         case 'boolean': return traversalEntryOfBoolean(v);
         case 'array': return traversalEntryOfArray(v);
         case 'map': return traversalEntryOfMap(v);
+        case 'missing': return traversalEntryOfMissing();
     }
 }
 
@@ -140,6 +141,7 @@ function safeTraversalEntryOf(v: model.Value | undefined): TraversalEntry {
         case 'boolean': return traversalEntryOfBoolean(v);
         case 'array': return traversalEntryOfArray(v);
         case 'map': return traversalEntryOfMap(v);
+        case 'missing': return traversalEntryOfMissing();
     }
 }
 
@@ -307,5 +309,13 @@ function traversalEntryOfBoolean(impl: model.Value | undefined): ScalarTraversal
         rawText: () => getRawText(impl),
         exists: () => impl !== undefined,
         valid: () => impl !== undefined && impl.valueType === 'boolean'
+    };
+}
+
+function traversalEntryOfMissing(): TraversalEntry {
+    return {
+        type: () => 'not-present',
+        exists: () => false,
+        valid: () => false,
     };
 }

@@ -43,9 +43,19 @@ export interface MapValue {
     readonly entries: { [key: string]: ResourceMapEntry };
 }
 
+// E.g. the case where there is a header with no value
+// naughty:
+// nice:
+//   val: 123
+// In the above, 'naughty' will have a MissingValue
+export interface MissingValue {
+    readonly valueType: 'missing';
+}
+
 export type Value =
     StringValue |
     NumberValue |
     BooleanValue |
     ArrayValue |
-    MapValue;
+    MapValue |
+    MissingValue;
