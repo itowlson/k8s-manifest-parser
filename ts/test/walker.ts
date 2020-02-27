@@ -53,7 +53,7 @@ describe('AST walker', () => {
     it('should notify on every node', () => {
         let count = 0;
         const walker = {
-            onNode: (_v: parser.Parented<parser.Value>) => {
+            onNode: (_v: parser.Value, _a: ReadonlyArray<parser.Ancestor>) => {
                 ++count;
             }
         };
@@ -63,7 +63,7 @@ describe('AST walker', () => {
     it('should notify on every string scalar', () => {
         let count = 0;
         const walker = {
-            onString: (_v: parser.Parented<parser.StringValue>) => {
+            onString: (_v: parser.StringValue, _a: ReadonlyArray<parser.Ancestor>) => {
                 ++count;
             }
         };
@@ -73,7 +73,7 @@ describe('AST walker', () => {
     it('should notify on every numeric scalar', () => {
         let count = 0;
         const walker = {
-            onNumber: (_v: parser.Parented<parser.NumberValue>) => {
+            onNumber: (_v: parser.NumberValue, _a: ReadonlyArray<parser.Ancestor>) => {
                 ++count;
             }
         };
@@ -83,7 +83,7 @@ describe('AST walker', () => {
     it('should notify on every boolean scalar', () => {
         let count = 0;
         const walker = {
-            onBoolean: (_v: parser.Parented<parser.BooleanValue>) => {
+            onBoolean: (_v: parser.BooleanValue, _a: ReadonlyArray<parser.Ancestor>) => {
                 ++count;
             }
         };
@@ -93,7 +93,7 @@ describe('AST walker', () => {
     it('should notify on every map', () => {
         let count = 0;
         const walker = {
-            onMap: (_v: parser.Parented<parser.MapValue>) => {
+            onMap: (_v: parser.MapValue, _a: ReadonlyArray<parser.Ancestor>) => {
                 ++count;
             }
         };
@@ -103,7 +103,7 @@ describe('AST walker', () => {
     it('should notify on every array', () => {
         let count = 0;
         const walker = {
-            onArray: (_v: parser.Parented<parser.ArrayValue>) => {
+            onArray: (_v: parser.ArrayValue, _a: ReadonlyArray<parser.Ancestor>) => {
                 ++count;
             }
         };
@@ -114,7 +114,7 @@ describe('AST walker', () => {
     it('should be able to walk from a particular node', () => {
         let count = 0;
         const walker = {
-            onString: (_v: parser.Parented<parser.StringValue>) => {
+            onString: (_v: parser.StringValue, _a: ReadonlyArray<parser.Ancestor>) => {
                 ++count;
             }
         };
@@ -123,61 +123,65 @@ describe('AST walker', () => {
     });
 
     it('should provide ancestry information', () => {
-        const images = Array.of<parser.Parented<parser.StringValue>>();
+        const images = Array.of<[parser.StringValue, ReadonlyArray<parser.Ancestor>]>();
         const walker = {
-            onString: (v: parser.Parented<parser.StringValue>) => {
-                if (v.value.value.includes('image')) {
-                    images.push(v);
+            onString: (v: parser.StringValue, a: ReadonlyArray<parser.Ancestor>) => {
+                if (v.value.includes('image')) {
+                    images.push([v, a]);
                 }
             }
         };
         parser.walk(test, walker);
         assert.equal(images.length, 2);
 
-        assert.equal(images[0].value.value, 'someimage:123');
-        assert.equal(images[0].ancestors.length, 6);
-        assertMap(ancestorAt(images[0], 0), 'image');
-        assertArray(ancestorAt(images[0], 1), 0);
-        assertMap(ancestorAt(images[0], 2), 'containers', { start: testText.indexOf('containers'), end: testText.indexOf('containers') + 10 });
-        assertMap(ancestorAt(images[0], 3), 'spec');
-        assertMap(ancestorAt(images[0], 4), 'podTemplate', { start: testText.indexOf('podTemplate'), end: testText.indexOf('podTemplate') + 11 });
-        assertMap(ancestorAt(images[0], 5), 'spec', { start: testText.indexOf('spec'), end: testText.indexOf('spec') + 4 });
+        const [str0, anc0] = images[0];
+        assert.equal(str0.value, 'someimage:123');
+        assert.equal(anc0.length, 6);
+        assertMap(ancestorAt(anc0, 0), 'image');
+        assertArray(ancestorAt(anc0, 1), 0);
+        assertMap(ancestorAt(anc0, 2), 'containers', { start: testText.indexOf('containers'), end: testText.indexOf('containers') + 10 });
+        assertMap(ancestorAt(anc0, 3), 'spec');
+        assertMap(ancestorAt(anc0, 4), 'podTemplate', { start: testText.indexOf('podTemplate'), end: testText.indexOf('podTemplate') + 11 });
+        assertMap(ancestorAt(anc0, 5), 'spec', { start: testText.indexOf('spec'), end: testText.indexOf('spec') + 4 });
 
-        assert.equal(images[1].value.value, 'someotherimage:456');
-        assert.equal(images[1].ancestors.length, 6);
-        assertArray(ancestorAt(images[1], 1), 1);
-        assertMap(ancestorAt(images[1], 2), 'containers');
+        const [str1, anc1] = images[1];
+        assert.equal(str1.value, 'someotherimage:456');
+        assert.equal(anc1.length, 6);
+        assertArray(ancestorAt(anc1, 1), 1);
+        assertMap(ancestorAt(anc1, 2), 'containers');
     });
     it('should provide ancestry information even when looking only below a node', () => {
-        const images = Array.of<parser.Parented<parser.StringValue>>();
+        const images = Array.of<[parser.StringValue, ReadonlyArray<parser.Ancestor>]>();
         const walker = {
-            onString: (v: parser.Parented<parser.StringValue>) => {
-                if (v.value.value.includes('image')) {
-                    images.push(v);
+            onString: (v: parser.StringValue, a: ReadonlyArray<parser.Ancestor>) => {
+                if (v.value.includes('image')) {
+                    images.push([v, a]);
                 }
             }
         };
         parser.walkFrom(test, (parser.asTraversable(test) as any).spec.podTemplate.spec, walker);
         assert.equal(images.length, 2);
 
-        assert.equal(images[0].value.value, 'someimage:123');
-        assert.equal(images[0].ancestors.length, 6);
-        assertMap(ancestorAt(images[0], 0), 'image');
-        assertArray(ancestorAt(images[0], 1), 0);
-        assertMap(ancestorAt(images[0], 2), 'containers');
-        assertMap(ancestorAt(images[0], 3), 'spec');
-        assertMap(ancestorAt(images[0], 4), 'podTemplate');
-        assertMap(ancestorAt(images[0], 5), 'spec');
+        const [str0, anc0] = images[0];
+        assert.equal(str0.value, 'someimage:123');
+        assert.equal(anc0.length, 6);
+        assertMap(ancestorAt(anc0, 0), 'image');
+        assertArray(ancestorAt(anc0, 1), 0);
+        assertMap(ancestorAt(anc0, 2), 'containers');
+        assertMap(ancestorAt(anc0, 3), 'spec');
+        assertMap(ancestorAt(anc0, 4), 'podTemplate');
+        assertMap(ancestorAt(anc0, 5), 'spec');
 
-        assert.equal(images[1].value.value, 'someotherimage:456');
-        assert.equal(images[1].ancestors.length, 6);
-        assertArray(ancestorAt(images[1], 1), 1);
-        assertMap(ancestorAt(images[1], 2), 'containers');
+        const [str1, anc1] = images[1];
+        assert.equal(str1.value, 'someotherimage:456');
+        assert.equal(anc1.length, 6);
+        assertArray(ancestorAt(anc1, 1), 1);
+        assertMap(ancestorAt(anc1, 2), 'containers');
     });
 });
 
-function ancestorAt(entry: parser.Parented<parser.Value>, level: number): parser.Ancestor {
-    return entry.ancestors[level];
+function ancestorAt(ancestors: ReadonlyArray<parser.Ancestor>, level: number): parser.Ancestor {
+    return ancestors[level];
 }
 
 function assertArray(entry: parser.Ancestor, expectedIndex: number): void {
