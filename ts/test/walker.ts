@@ -180,6 +180,49 @@ describe('AST walker', () => {
     });
 });
 
+describe('AST evaluator', () => {
+    it('should notify on every node', () => {
+        const walker = {
+            onNode: function*(_v: parser.Value, _a: ReadonlyArray<parser.Ancestor>) {
+                yield 1;
+            }
+        };
+        const results = parser.evaluate(simple, walker);
+        assert.equal(results.length, 8);
+    });
+    it('should notify on every string scalar', () => {
+        const evaluator = {
+            onString: function*(_v: parser.StringValue, _a: ReadonlyArray<parser.Ancestor>) {
+                yield 1;
+            }
+        };
+        const results = parser.evaluate(simple, evaluator);
+        assert.equal(results.length, 3);
+    });
+
+    it('should be able to walk from a particular node', () => {
+        const walker = {
+            onString: function*(_v: parser.StringValue, _a: ReadonlyArray<parser.Ancestor>) {
+                yield 1;
+            }
+        };
+        const results = parser.evaluateFrom(test, (parser.asTraversable(test) as any).spec.podTemplate.spec, walker);
+        assert.equal(results.length, 2);
+    });
+
+    it('should yield correct info', () => {
+        const walker = {
+            onString: function*(v: parser.StringValue, _a: ReadonlyArray<parser.Ancestor>) {
+                yield v.value;
+            }
+        };
+        const results = parser.evaluateFrom(test, (parser.asTraversable(test) as any).spec.podTemplate.spec, walker);
+        assert.equal(results.length, 2);
+        assert.equal(results[0], 'someimage:123');
+        assert.equal(results[1], 'someotherimage:456');
+    });
+});
+
 function ancestorAt(ancestors: ReadonlyArray<parser.Ancestor>, level: number): parser.Ancestor {
     return ancestors[level];
 }
