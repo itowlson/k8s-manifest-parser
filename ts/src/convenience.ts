@@ -325,5 +325,6 @@ function traversalEntryOfMissing(): TraversalEntry {
         type: () => 'not-present',
         exists: () => false,
         valid: () => false,
+        parseNode: () => undefined,
     };
 }
