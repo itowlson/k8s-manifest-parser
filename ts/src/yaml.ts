@@ -39,7 +39,10 @@ function parseMappingsInto(mappings: yp.YAMLMapping[], mapParse: { [key: string]
     }
 }
 
-function parseNode(node: yp.YAMLNode): model.Value {
+function parseNode(node: yp.YAMLNode | null | undefined): model.Value {
+    if (!node) {
+        return { valueType: 'missing' };
+    }
     switch (node.kind) {
         case yp.Kind.SCALAR:
             const value = parseScalarValue(node as yp.YAMLScalar);

@@ -76,6 +76,12 @@ describe('mostly-type-safe convenience layer', () => {
         assert.equal(md.number('name').type(), 'not-valid');
         assert.equal(md.number('zzzzzzz').type(), 'not-present');
     });
+
+    it('handles keys with no values', () => {
+        const result = parser.asTraversable(parser.parseYAML('naughty:\nnice:\n  test: 123')[0]);
+        assert.equal(result.child('naughty').exists(), false);
+        assert.equal(result.child('naughty').type(), 'not-present');
+    });
 });
 
 describe('the typed-but-only-weakly convenience layer', () => {

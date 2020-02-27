@@ -220,6 +220,12 @@ describe('YAML parser', () => {
         assertEqualsStringValue(result.entries['foo'], 'hello\nworld\n');
         assertEqualsStringValue(result.entries['bar'], 'quux');
     });
+
+    it('handles keys with no values', () => {
+        const result = parser.parseYAML('naughty:\nnice:\n  test: 123')[0];
+        assert.equal(result.entries['naughty'].value.valueType, 'missing');
+        assert.equal(result.entries['nice'].value.valueType, 'map');
+    });
 });
 
 function assertEqualsRawText(entry: parser.ResourceMapEntry, expected: string): void {
