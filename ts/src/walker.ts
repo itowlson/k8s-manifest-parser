@@ -13,7 +13,11 @@ export function walkFrom(resource: model.ResourceParse, from: traversal.Traversa
     evaluateFrom(resource, from, evalise(walker));
 }
 
-export function evaluate<T>(resource: model.ResourceParse, evaluator: ResourceEvaluator<T>): T[] {
+export function evaluate<T>(resource: model.ResourceParse | model.ResourceParse[], evaluator: ResourceEvaluator<T>): T[] {
+    if (Array.isArray(resource)) {
+        const results = resource.map((r) => evaluate(r, evaluator));
+        return Array.of<T>().concat(...results);
+    }
     return evaluateImpl({ valueType: 'map', entries: resource.entries }, [], evaluator);
 }
 
