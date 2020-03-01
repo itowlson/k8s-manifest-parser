@@ -46,8 +46,26 @@ status:
   good: verygood
 `;
 
+const multiText = `---
+apiVersion: apps/v1
+metadata:
+  labels:
+    wizz: bang
+containers:
+  - cont1
+  - 123
+---
+apiVersion: extensions/v2
+metadata:
+  wizz:
+    foo: fooval
+containers:
+  - cont2
+`;
+
 const simple = parser.parseYAML(simpleText)[0];
 const test = parser.parseYAML(testText)[0];
+const multi = parser.parseYAML(multiText);
 
 describe('AST walker', () => {
     it('should notify on every node', () => {
@@ -198,6 +216,16 @@ describe('AST evaluator', () => {
         };
         const results = parser.evaluate(simple, evaluator);
         assert.equal(results.length, 3);
+    });
+
+    it('can evaluate across multiple manifests', () => {
+        const evaluator = {
+            onString: function*(_v: parser.StringValue, _a: ReadonlyArray<parser.Ancestor>) {
+                yield 1;
+            }
+        };
+        const results = parser.evaluate(multi, evaluator);
+        assert.equal(results.length, 6);
     });
 
     it('should be able to walk from a particular node', () => {
