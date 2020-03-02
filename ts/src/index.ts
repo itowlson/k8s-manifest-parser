@@ -4,3 +4,4 @@ export * from './json';
 export * from './helm';
 export * from './convenience';
 export * from './walker';
+export * from './semantics';
