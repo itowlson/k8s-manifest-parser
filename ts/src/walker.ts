@@ -18,7 +18,7 @@ export function evaluate<T>(resource: model.ResourceParse | model.ResourceParse[
         const results = resource.map((r) => evaluate(r, evaluator));
         return Array.of<T>().concat(...results);
     }
-    return evaluateImpl({ valueType: 'map', entries: resource.entries }, [], evaluator);
+    return evaluateImpl({ valueType: 'map', entries: resource.entries, range: resource.range }, [], evaluator);
 }
 
 export function evaluateFromValue<T>(resource: model.ResourceParse, from: model.Value, evaluator: ResourceEvaluator<T>): T[] {

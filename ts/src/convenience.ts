@@ -45,7 +45,7 @@ export interface ScalarTraversalEntry<T> extends TraversalEntry {
 }
 
 export function asTraversable(impl: model.ResourceParse): MapTraversalEntry {
-    return traversalEntryOfMap({ valueType: 'map', entries: impl.entries });
+    return traversalEntryOfMap({ valueType: 'map', entries: impl.entries, range: impl.range });
 }
 
 function withChildAccessors(n: TraversalEntry): any {

@@ -4,7 +4,7 @@ import * as model from './model';
 
 export function parseYAML(text: string): model.ResourceParse[] {
     const roots = rootNodes(text);
-    return roots.map((r) => ({ entries: parseRootNode(r) }));
+    return roots.map(parseRootNode);
 }
 
 function rootNodes(yamlText: string): yp.YAMLNode[] {
@@ -13,14 +13,16 @@ function rootNodes(yamlText: string): yp.YAMLNode[] {
     return roots;
 }
 
-function parseRootNode(rootNode: yp.YAMLNode): { [key: string]: model.ResourceMapEntry } {
+function parseRootNode(rootNode: yp.YAMLNode): model.ResourceParse {
+    const range = { start: rootNode.startPosition, end: rootNode.endPosition };
+
     if (rootNode.kind !== yp.Kind.MAP) {
-        return {};
+        return { entries: {}, range };
     }
 
     const map = rootNode as yp.YamlMap;
 
-    return parseMappings(map);
+    return { entries: parseMappings(map), range };
 }
 
 function parseMappings(map: yp.YamlMap): { [key: string]: model.ResourceMapEntry; } {
@@ -41,19 +43,19 @@ function parseMappingsInto(mappings: yp.YAMLMapping[], mapParse: { [key: string]
 
 function parseNode(node: yp.YAMLNode | null | undefined): model.Value {
     if (!node) {
-        return { valueType: 'missing' };
+        return { valueType: 'missing', range: { start: 0, end: 0 } };
     }
+    const range = { start: node.startPosition, end: node.endPosition };
     switch (node.kind) {
         case yp.Kind.SCALAR:
             const value = parseScalarValue(node as yp.YAMLScalar);
-            return {
-                range: { start: node.startPosition, end: node.endPosition },
-                ...value
-            };
+            return { range, ...value };
         case yp.Kind.MAP:
-            return parseMapValue(node as yp.YamlMap);
+            const mapValue = parseMapValue(node as yp.YamlMap);
+            return { range, ...mapValue };
         case yp.Kind.SEQ:
-            return parseSequenceValue(node as yp.YAMLSequence);
+            const seqValue = parseSequenceValue(node as yp.YAMLSequence);
+            return { range, ...seqValue };
         default:
             throw new Error('unexpected node kind');
     }
@@ -76,11 +78,11 @@ function parseScalarValue(node: yp.YAMLScalar): Rangeless<model.StringValue> | R
 function parseMapValue(node: yp.YamlMap): Rangeless<model.MapValue> {
     return {
         valueType: 'map',
-        entries: parseMappings(node)
+        entries: parseMappings(node),
     };
 }
 
-function parseSequenceValue(node: yp.YAMLSequence): model.ArrayValue {
+function parseSequenceValue(node: yp.YAMLSequence): Rangeless<model.ArrayValue> {
     const items = node.items;
     const values = items.map((item) => parseNode(item));
     return {

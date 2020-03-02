@@ -28,7 +28,7 @@ function encodeWithTemplateMarkers(s: string): string {
 }
 
 function unmutilate(parse: model.ResourceParse, originalText: string): model.ResourceParse {
-    return unmutilateMap({ valueType: 'map', entries: parse.entries }, originalText);
+    return unmutilateMap({ valueType: 'map', entries: parse.entries, range: parse.range }, originalText);
 }
 
 function unmutilateNode(node: model.Value, originalText: string): model.Value {
@@ -57,7 +57,7 @@ function unmutilateString(s: model.StringValue, originalText: string): model.Str
 }
 
 function unmutilateArray(array: model.ArrayValue, originalText: string): model.ArrayValue {
-    return { valueType: 'array', items: array.items.map((v) => unmutilateNode(v, originalText)) };
+    return { valueType: 'array', items: array.items.map((v) => unmutilateNode(v, originalText)), range: array.range };
 }
 
 function unmutilateMap(map: model.MapValue, originalText: string): model.MapValue {
@@ -65,7 +65,7 @@ function unmutilateMap(map: model.MapValue, originalText: string): model.MapValu
     for (const [key, value] of Object.entries(map.entries)) {
         entries[key] = unmutilateResourceMapEntry(value, originalText);
     }
-    return { valueType: 'map', entries: entries };
+    return { valueType: 'map', entries: entries, range: map.range };
 }
 
 function unmutilateResourceMapEntry(entry: model.ResourceMapEntry, originalText: string): model.ResourceMapEntry {

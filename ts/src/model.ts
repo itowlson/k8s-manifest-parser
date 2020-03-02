@@ -5,6 +5,7 @@ export interface Range {
 
 export interface ResourceParse {
     readonly entries: { [key: string]: ResourceMapEntry };
+    readonly range: Range;
 }
 
 export interface ResourceMapEntry {
@@ -36,11 +37,13 @@ export interface BooleanValue {
 export interface ArrayValue {
     readonly valueType: 'array';
     readonly items: ReadonlyArray<Value>;
+    readonly range: Range;
 }
 
 export interface MapValue {
     readonly valueType: 'map';
     readonly entries: { [key: string]: ResourceMapEntry };
+    readonly range: Range;
 }
 
 // E.g. the case where there is a header with no value
@@ -50,6 +53,7 @@ export interface MapValue {
 // In the above, 'naughty' will have a MissingValue
 export interface MissingValue {
     readonly valueType: 'missing';
+    readonly range: Range;  // TODO: would rather not but it makes life easier
 }
 
 export type Value =

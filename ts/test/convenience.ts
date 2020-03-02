@@ -118,6 +118,37 @@ describe('mostly-type-safe convenience layer', () => {
         assert.equal(arrayAsNumbers[2].valid(), true);
         assert.equal(arrayAsNumbers[2].value(), 1234);
     });
+
+    // const rangeTextText = 'str1: s1\nmap1:\n  map11:\n    foo: 123\n    bar: 456\nmap2:\n  baz: 789\narr:\n- a\n- b\n- m:\n    am1: 987';
+
+    // it('can give out a containing range for nonexistent nodes', () => {
+    //     const resource = parser.parseYAML(rangeTextText)[0];
+    //     const result = parser.asTraversable(resource);
+
+    //     function assertNearestRangeIs(entry: parser.TraversalEntry, start: number, end: number) {
+    //         assert.equal(parser.nearestUsableRange(entry)?.start, start);
+    //         assert.equal(parser.nearestUsableRange(entry)?.end, end);
+    //     }
+
+    //     const existentTopLevel = result.child('str1');
+    //     assertNearestRangeIs(existentTopLevel, 0, 4);
+
+    //     const nonExistentTopLevel = result.child('wibble');
+    //     assert.equal(parser.nearestUsableRange(nonExistentTopLevel), undefined);
+
+    //     const belowNonExistentTopLevel = result.map('wibble').child('wobble');
+    //     assert.equal(parser.nearestUsableRange(belowNonExistentTopLevel), undefined);
+
+    //     assertNearestRangeIs(result.map('map1').map('nope'), 9, 13);
+    //     assertNearestRangeIs(result.map('map1').map('nope').string('nope2'), 9, 13);
+    //     assertNearestRangeIs(result.map('map1').map('map11'), 17, 22);
+    //     assertNearestRangeIs(result.map('map1').map('map11').string('nope2'), 17, 22);
+
+    //     assertNearestRangeIs(result.array('arr').string(0), 74, 75);
+    //     assertNearestRangeIs(result.array('arr').number(0), 74, 75);
+    //     assertNearestRangeIs(result.array('arr').map(0).child('nope'), 74, 75);
+    //     assertNearestRangeIs(result.array('arr').map(2).child('nope'), 82, 83);
+    // });
 });
 
 describe('the typed-but-only-weakly convenience layer', () => {
