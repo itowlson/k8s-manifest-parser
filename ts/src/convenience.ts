@@ -21,6 +21,11 @@ export interface ArrayTraversalEntry extends TraversalEntry {
     array(key: number): ArrayTraversalEntry;
     map(key: number): MapTraversalEntry;
     items(): ReadonlyArray<TraversalEntry>;
+    strings(): ReadonlyArray<ScalarTraversalEntry<string>>;
+    numbers(): ReadonlyArray<ScalarTraversalEntry<number>>;
+    booleans(): ReadonlyArray<ScalarTraversalEntry<boolean>>;
+    arrays(): ReadonlyArray<ArrayTraversalEntry>;
+    maps(): ReadonlyArray<MapTraversalEntry>;
 }
 
 export interface MapTraversalEntry extends TraversalEntry {
@@ -201,6 +206,11 @@ function traversalEntryOfArrayCore(impl: model.Value | undefined): ArrayTraversa
             exists: () => !!impl,
             valid: () => false,
             items: () => { throw new Error('element is not an array'); },
+            strings: () => [],
+            numbers: () => [],
+            booleans: () => [],
+            arrays: () => [],
+            maps: () => [],
         };
     }
     return {
@@ -215,6 +225,11 @@ function traversalEntryOfArrayCore(impl: model.Value | undefined): ArrayTraversa
         exists: () => true,
         valid: () => true,
         items: () => impl.items.map((i) => traversalEntryOf(i)),
+        strings: () => impl.items.map((i) => traversalEntryOfString(i)),
+        numbers: () => impl.items.map((i) => traversalEntryOfNumber(i)),
+        booleans: () => impl.items.map((i) => traversalEntryOfBoolean(i)),
+        arrays: () => impl.items.map((i) => traversalEntryOfArray(i)),
+        maps: () => impl.items.map((i) => traversalEntryOfMap(i)),
     };
 }
 
