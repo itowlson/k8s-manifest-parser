@@ -82,6 +82,42 @@ describe('mostly-type-safe convenience layer', () => {
         assert.equal(result.child('naughty').exists(), false);
         assert.equal(result.child('naughty').type(), 'not-present');
     });
+
+    const arrayTestText = 'homogeneous:\n- image: im1\n  policy: AlwaysPull\n- image: im2\n  policy: PullIfMissing\nheterogeneous:\n- image: im3\n- astring\n- 1234';
+
+    it('supports homogeneous arrays', () => {
+        const result = parser.asTraversable(parser.parseYAML(arrayTestText)[0]);
+        const array = result.array('homogeneous');
+        assert.equal(array.exists(), true);
+        assert.equal(array.valid(), true);
+        const arrayElements = array.maps();
+        assert.equal(arrayElements.length, 2);
+        assert.equal(arrayElements[0].valid(), true);
+        assert.equal(arrayElements[0].string('image').value(), 'im1');
+        assert.equal(arrayElements[1].valid(), true);
+        assert.equal(arrayElements[1].string('image').value(), 'im2');
+    });
+    it('handles heterogeneous arrays', () => {
+        const result = parser.asTraversable(parser.parseYAML(arrayTestText)[0]);
+        const array = result.array('heterogeneous');
+        assert.equal(array.exists(), true);
+        assert.equal(array.valid(), true);
+
+        const arrayAsStrings = array.strings();
+        const arrayAsNumbers = array.numbers();
+
+        assert.equal(arrayAsStrings.length, 3);
+        assert.equal(arrayAsStrings[0].valid(), false);
+        assert.equal(arrayAsStrings[1].valid(), true);
+        assert.equal(arrayAsStrings[2].valid(), false);
+        assert.equal(arrayAsStrings[1].value(), 'astring');
+
+        assert.equal(arrayAsNumbers.length, 3);
+        assert.equal(arrayAsNumbers[0].valid(), false);
+        assert.equal(arrayAsNumbers[1].valid(), false);
+        assert.equal(arrayAsNumbers[2].valid(), true);
+        assert.equal(arrayAsNumbers[2].value(), 1234);
+    });
 });
 
 describe('the typed-but-only-weakly convenience layer', () => {
