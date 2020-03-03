@@ -1,6 +1,6 @@
 {
   "name": "k8s-manifest-parser",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "preview": true,
   "description": "Parses Kubernetes manifests for processing or validation",
   "main": "js/src/index.js",
