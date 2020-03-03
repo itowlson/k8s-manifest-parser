@@ -7,7 +7,7 @@ export function parseJSON(text: string): model.ResourceParse[] {
 }
 
 function dequote(source: model.ResourceParse): model.ResourceParse {
-    return { entries: dequoteKeys(source.entries) };
+    return { entries: dequoteKeys(source.entries), range: source.range };
 }
 
 function dequoteKeys(source: { [key: string ]: model.ResourceMapEntry }): { [key: string ]: model.ResourceMapEntry } {
@@ -20,7 +20,7 @@ function dequoteKeys(source: { [key: string ]: model.ResourceMapEntry }): { [key
 }
 
 function dequoteMapEntry(source: model.ResourceMapEntry): model.ResourceMapEntry {
-    return { keyRange: source.keyRange, value: dequoteValue(source.value) };
+    return { key: source.key, keyRange: source.keyRange, range: source.range, value: dequoteValue(source.value) };
 }
 
 function dequoteValue(v: model.Value): model.Value {
@@ -31,9 +31,9 @@ function dequoteValue(v: model.Value): model.Value {
         case 'missing':
             return v;
         case 'array':
-            return { valueType: 'array', items: v.items.map(dequoteValue) };
+            return { valueType: 'array', items: v.items.map(dequoteValue), range: v.range };
         case 'map':
-            return { valueType: 'map', entries: dequoteKeys(v.entries) };
+            return { valueType: 'map', entries: dequoteKeys(v.entries), range: v.range };
     }
 }
 

@@ -118,6 +118,33 @@ describe('mostly-type-safe convenience layer', () => {
         assert.equal(arrayAsNumbers[2].valid(), true);
         assert.equal(arrayAsNumbers[2].value(), 1234);
     });
+
+    const rangeTextText = 'str1: s1\nmap1:\n  map11:\n    foo: 123\n    bar: 456\nmap2:\n  baz: 789\narr:\n- a\n- b\n- m:\n    am1: 987';
+
+    it('can give out a highlight range for nonexistent nodes', () => {
+        const resource = parser.parseYAML(rangeTextText)[0];
+        const result = parser.asTraversable(resource);
+
+        function assertHighlightRangeIs(entry: parser.TraversalEntry, start: number, end: number) {
+            assert.equal(parser.highlightRange(entry)?.start, start);
+            assert.equal(parser.highlightRange(entry)?.end, end);
+        }
+
+        assertHighlightRangeIs(result.child('str1'), 6, 8);  // because this is the value range not the key range
+
+        assertHighlightRangeIs(result.child('wibble'), 0, 97);  // TODO: maybe the default should be the first entry in the file or something
+        assertHighlightRangeIs(result.map('wibble').child('wobble'), 0, 97);
+
+        assertHighlightRangeIs(result.map('map1').map('nope'), 9, 13);
+        assertHighlightRangeIs(result.map('map1').map('nope').string('nope2'), 9, 13);
+        assertHighlightRangeIs(result.map('map1').map('map11'), 28, 49);  // TODO: I feel this is inconsistent - nonexistent children of this would report the key range not the node itself
+        assertHighlightRangeIs(result.map('map1').map('map11').string('nope2'), 17, 22);
+
+        assertHighlightRangeIs(result.array('arr').string(0), 74, 75);
+        assertHighlightRangeIs(result.array('arr').number(0), 74, 75);
+        assertHighlightRangeIs(result.array('arr').map(0).child('nope'), 74, 75);
+        assertHighlightRangeIs(result.array('arr').map(2).child('nope'), 72, 98);  // TODO: again feels like 'nonexistent child of existent map' is blowing up the wrong thing - this is the whole array  // TODO: why 98 rather than 97?!
+    });
 });
 
 describe('the typed-but-only-weakly convenience layer', () => {
