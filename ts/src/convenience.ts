@@ -185,7 +185,7 @@ function traversalEntryOfMapCore(impl: model.Value | undefined, npn: NearestPars
             array: (_key: string) => withKeyRange(undefined, safeNPNOfValue(impl, npn), traversalEntryOfArray),
             map: (_key: string) => withKeyRange(undefined, safeNPNOfValue(impl, npn), traversalEntryOfMap),
             parseNode: () => impl,
-            nearestParseNode: () => impl || npn,
+            nearestParseNode: () => safeNPNOfValue(impl, npn),
             exists: () => !!impl,
             valid: () => false,
             items: () => { throw new Error('element is not a map'); },
