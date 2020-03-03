@@ -35,8 +35,10 @@ function parseMappingsInto(mappings: yp.YAMLMapping[], mapParse: { [key: string]
     for (const m of mappings) {
         const value = parseNode(m.value);
         mapParse[m.key.rawValue] = {
+            key: m.key.value,
             keyRange: { start: m.key.startPosition, end: m.key.endPosition },
-            value: value
+            value: value,
+            range: { start: m.startPosition, end: m.endPosition },
         };
     }
 }

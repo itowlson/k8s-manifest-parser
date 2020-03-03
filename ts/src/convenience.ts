@@ -4,6 +4,8 @@ export interface Keyed {
     keyRange(): model.Range;
 }
 
+export type NearestParseNode = model.Value | model.ResourceMapEntry;
+
 export type TraversalEntryType = 'string' | 'number' | 'boolean' | 'array' | 'map' | 'not-present' | 'not-valid';
 
 export interface TraversalEntry {
@@ -11,7 +13,7 @@ export interface TraversalEntry {
     exists(): boolean;
     valid(): boolean;
     parseNode(): model.Value | undefined;
-    nearestParseNode(): model.Value;
+    nearestParseNode(): NearestParseNode;
 }
 
 export interface ArrayTraversalEntry extends TraversalEntry {
@@ -107,7 +109,7 @@ function withMapKeyAccessors(n: MapTraversalEntry): any {
     return new Proxy<MapTraversalEntry>(n, keyHandler);
 }
 
-function withKeyRange<T>(r: model.ResourceMapEntry | undefined, npn: model.Value, f: (v: model.Value | undefined, npn: model.Value) => T): T & Keyed {
+function withKeyRange<T>(r: model.ResourceMapEntry | undefined, npn: NearestParseNode, f: (v: model.Value | undefined, npn: NearestParseNode) => T): T & Keyed {
     const n = f(r?.value, npn);
     const k: Keyed = {
         keyRange: () => {
@@ -128,7 +130,7 @@ function withKeyRangeUnchecked<T>(r: model.ResourceMapEntry, npn: model.Value, f
     return { ...n, ...k };
 }
 
-function traversalEntryOf(v: model.Value, npn: model.Value): TraversalEntry {
+function traversalEntryOf(v: model.Value, npn: NearestParseNode): TraversalEntry {
     switch (v.valueType) {
         case 'string': return traversalEntryOfString(v, v);
         case 'number': return traversalEntryOfNumber(v, v);
@@ -139,7 +141,7 @@ function traversalEntryOf(v: model.Value, npn: model.Value): TraversalEntry {
     }
 }
 
-function safeTraversalEntryOf(v: model.Value | undefined, npn: model.Value): TraversalEntry {
+function safeTraversalEntryOf(v: model.Value | undefined, npn: NearestParseNode): TraversalEntry {
     if (!v) {
         return traversalEntryOfMap(undefined, npn);
     }
@@ -153,12 +155,12 @@ function safeTraversalEntryOf(v: model.Value | undefined, npn: model.Value): Tra
     }
 }
 
-function traversalEntryOfMap(impl: model.Value | undefined, npn: model.Value): MapTraversalEntry {
+function traversalEntryOfMap(impl: model.Value | undefined, npn: NearestParseNode): MapTraversalEntry {
     const core = traversalEntryOfMapCore(impl, npn);
     return withMapKeyAccessors(core);
 }
 
-function traversalEntryOfMapCore(impl: model.Value | undefined, npn: model.Value): MapTraversalEntry {
+function traversalEntryOfMapCore(impl: model.Value | undefined, npn: NearestParseNode): MapTraversalEntry {
     if (!impl || impl.valueType !== 'map') {
         return {
             type: () => impl ? 'not-valid' : 'not-present',
@@ -172,17 +174,17 @@ function traversalEntryOfMapCore(impl: model.Value | undefined, npn: model.Value
             nearestParseNode: () => impl || npn,
             exists: () => !!impl,
             valid: () => false,
-            items: () => { throw new Error('element is not an array'); },
+            items: () => { throw new Error('element is not a map'); },
         };
     }
     return {
         type: () => 'map',
-        child: (key: string) => withKeyRange(impl.entries[key], impl, safeTraversalEntryOf),
-        string: (key: string) => withKeyRange(impl.entries[key], impl, traversalEntryOfString),
-        number: (key: string) => withKeyRange(impl.entries[key], impl, traversalEntryOfNumber),
-        boolean: (key: string) => withKeyRange(impl.entries[key], impl, traversalEntryOfBoolean),
-        array: (key: string) => withKeyRange(impl.entries[key], impl, traversalEntryOfArray),
-        map: (key: string) => withKeyRange(impl.entries[key], impl, traversalEntryOfMap),
+        child: (key: string) => withKeyRange(impl.entries[key], impl.entries[key] || npn, safeTraversalEntryOf),
+        string: (key: string) => withKeyRange(impl.entries[key], impl.entries[key] || npn, traversalEntryOfString),
+        number: (key: string) => withKeyRange(impl.entries[key], impl.entries[key] || npn, traversalEntryOfNumber),
+        boolean: (key: string) => withKeyRange(impl.entries[key], impl.entries[key] || npn, traversalEntryOfBoolean),
+        array: (key: string) => withKeyRange(impl.entries[key], impl.entries[key] || npn, traversalEntryOfArray),
+        map: (key: string) => withKeyRange(impl.entries[key], impl.entries[key] || npn, traversalEntryOfMap),
         parseNode: () => impl,
         nearestParseNode: () => impl,
         exists: () => true,
@@ -191,12 +193,12 @@ function traversalEntryOfMapCore(impl: model.Value | undefined, npn: model.Value
     };
 }
 
-function traversalEntryOfArray(impl: model.Value | undefined, npn: model.Value): ArrayTraversalEntry {
+function traversalEntryOfArray(impl: model.Value | undefined, npn: NearestParseNode): ArrayTraversalEntry {
     const core = traversalEntryOfArrayCore(impl, npn);
     return withArrayIndexAccessors(core);
 }
 
-function traversalEntryOfArrayCore(impl: model.Value | undefined, npn: model.Value): ArrayTraversalEntry {
+function traversalEntryOfArrayCore(impl: model.Value | undefined, npn: NearestParseNode): ArrayTraversalEntry {
     if (!impl || impl.valueType !== 'array') {
         return {
             type: () => impl ? 'not-valid' : 'not-present',
@@ -287,7 +289,7 @@ function validatedEntryType(expected: TraversalEntryType, v: model.Value | undef
     return v.valueType === expected ? v.valueType : 'not-valid';
 }
 
-function traversalEntryOfString(impl: model.Value | undefined, npn: model.Value): ScalarTraversalEntry<string> {
+function traversalEntryOfString(impl: model.Value | undefined, npn: NearestParseNode): ScalarTraversalEntry<string> {
     return {
         type: () => validatedEntryType('string', impl),
         value: () => {
@@ -306,7 +308,7 @@ function traversalEntryOfString(impl: model.Value | undefined, npn: model.Value)
     };
 }
 
-function traversalEntryOfNumber(impl: model.Value | undefined, npn: model.Value): ScalarTraversalEntry<number> {
+function traversalEntryOfNumber(impl: model.Value | undefined, npn: NearestParseNode): ScalarTraversalEntry<number> {
     return {
         type: () => validatedEntryType('number', impl),
         value: () => {
@@ -325,7 +327,7 @@ function traversalEntryOfNumber(impl: model.Value | undefined, npn: model.Value)
     };
 }
 
-function traversalEntryOfBoolean(impl: model.Value | undefined, npn: model.Value): ScalarTraversalEntry<boolean> {
+function traversalEntryOfBoolean(impl: model.Value | undefined, npn: NearestParseNode): ScalarTraversalEntry<boolean> {
     return {
         type: () => validatedEntryType('boolean', impl),
         value: () => {
@@ -344,7 +346,7 @@ function traversalEntryOfBoolean(impl: model.Value | undefined, npn: model.Value
     };
 }
 
-function traversalEntryOfMissing(npn: model.Value): TraversalEntry {
+function traversalEntryOfMissing(npn: NearestParseNode): TraversalEntry {
     return {
         type: () => 'not-present',
         exists: () => false,
@@ -352,4 +354,19 @@ function traversalEntryOfMissing(npn: model.Value): TraversalEntry {
         parseNode: () => undefined,
         nearestParseNode: () => npn,
     };
+}
+
+export function highlightRange(entry: TraversalEntry): model.Range {
+    const parseNode = entry.nearestParseNode();
+
+    if (isValue(parseNode)) {
+        return parseNode.range;
+    } else {
+        return parseNode.keyRange;
+    }
+}
+
+function isValue(npn: NearestParseNode): npn is model.Value {
+    const vtAttr = (npn as model.Value).valueType;
+    return !!vtAttr;
 }

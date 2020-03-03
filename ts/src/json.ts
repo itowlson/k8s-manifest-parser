@@ -20,7 +20,7 @@ function dequoteKeys(source: { [key: string ]: model.ResourceMapEntry }): { [key
 }
 
 function dequoteMapEntry(source: model.ResourceMapEntry): model.ResourceMapEntry {
-    return { keyRange: source.keyRange, value: dequoteValue(source.value) };
+    return { key: source.key, keyRange: source.keyRange, range: source.range, value: dequoteValue(source.value) };
 }
 
 function dequoteValue(v: model.Value): model.Value {

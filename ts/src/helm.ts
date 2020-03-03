@@ -69,5 +69,5 @@ function unmutilateMap(map: model.MapValue, originalText: string): model.MapValu
 }
 
 function unmutilateResourceMapEntry(entry: model.ResourceMapEntry, originalText: string): model.ResourceMapEntry {
-    return { keyRange: entry.keyRange, value: unmutilateNode(entry.value, originalText) };
+    return { key: entry.key, keyRange: entry.keyRange, range: entry.range, value: unmutilateNode(entry.value, originalText) };
 }
