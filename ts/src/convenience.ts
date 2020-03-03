@@ -160,16 +160,30 @@ function traversalEntryOfMap(impl: model.Value | undefined, npn: NearestParseNod
     return withMapKeyAccessors(core);
 }
 
+function safeNPNOfEntry(candidate: model.ResourceMapEntry | undefined, fallback: NearestParseNode): NearestParseNode {
+    if (!candidate || !candidate.value) {
+        return fallback;
+    }
+    return candidate;
+}
+
+function safeNPNOfValue(candidate: model.Value | undefined, fallback: NearestParseNode): NearestParseNode {
+    if (!candidate || (candidate.valueType === 'missing')) {
+        return fallback;
+    }
+    return candidate;
+}
+
 function traversalEntryOfMapCore(impl: model.Value | undefined, npn: NearestParseNode): MapTraversalEntry {
     if (!impl || impl.valueType !== 'map') {
         return {
             type: () => impl ? 'not-valid' : 'not-present',
-            child: (_key: string) => withKeyRange(undefined, impl || npn, traversalEntryOfMap),
-            string: (_key: string) => withKeyRange(undefined, impl || npn, traversalEntryOfString),
-            number: (_key: string) => withKeyRange(undefined, impl || npn, traversalEntryOfNumber),
-            boolean: (_key: string) => withKeyRange(undefined, impl || npn, traversalEntryOfBoolean),
-            array: (_key: string) => withKeyRange(undefined, impl || npn, traversalEntryOfArray),
-            map: (_key: string) => withKeyRange(undefined, impl || npn, traversalEntryOfMap),
+            child: (_key: string) => withKeyRange(undefined, safeNPNOfValue(impl, npn), traversalEntryOfMap),
+            string: (_key: string) => withKeyRange(undefined, safeNPNOfValue(impl, npn), traversalEntryOfString),
+            number: (_key: string) => withKeyRange(undefined, safeNPNOfValue(impl, npn), traversalEntryOfNumber),
+            boolean: (_key: string) => withKeyRange(undefined, safeNPNOfValue(impl, npn), traversalEntryOfBoolean),
+            array: (_key: string) => withKeyRange(undefined, safeNPNOfValue(impl, npn), traversalEntryOfArray),
+            map: (_key: string) => withKeyRange(undefined, safeNPNOfValue(impl, npn), traversalEntryOfMap),
             parseNode: () => impl,
             nearestParseNode: () => impl || npn,
             exists: () => !!impl,
@@ -179,12 +193,12 @@ function traversalEntryOfMapCore(impl: model.Value | undefined, npn: NearestPars
     }
     return {
         type: () => 'map',
-        child: (key: string) => withKeyRange(impl.entries[key], impl.entries[key] || npn, safeTraversalEntryOf),
-        string: (key: string) => withKeyRange(impl.entries[key], impl.entries[key] || npn, traversalEntryOfString),
-        number: (key: string) => withKeyRange(impl.entries[key], impl.entries[key] || npn, traversalEntryOfNumber),
-        boolean: (key: string) => withKeyRange(impl.entries[key], impl.entries[key] || npn, traversalEntryOfBoolean),
-        array: (key: string) => withKeyRange(impl.entries[key], impl.entries[key] || npn, traversalEntryOfArray),
-        map: (key: string) => withKeyRange(impl.entries[key], impl.entries[key] || npn, traversalEntryOfMap),
+        child: (key: string) => withKeyRange(impl.entries[key], safeNPNOfEntry(impl.entries[key], npn), safeTraversalEntryOf),
+        string: (key: string) => withKeyRange(impl.entries[key], safeNPNOfEntry(impl.entries[key], npn), traversalEntryOfString),
+        number: (key: string) => withKeyRange(impl.entries[key], safeNPNOfEntry(impl.entries[key], npn), traversalEntryOfNumber),
+        boolean: (key: string) => withKeyRange(impl.entries[key], safeNPNOfEntry(impl.entries[key], npn), traversalEntryOfBoolean),
+        array: (key: string) => withKeyRange(impl.entries[key], safeNPNOfEntry(impl.entries[key], npn), traversalEntryOfArray),
+        map: (key: string) => withKeyRange(impl.entries[key], safeNPNOfEntry(impl.entries[key], npn), traversalEntryOfMap),
         parseNode: () => impl,
         nearestParseNode: () => impl,
         exists: () => true,

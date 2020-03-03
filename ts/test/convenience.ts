@@ -119,16 +119,12 @@ describe('mostly-type-safe convenience layer', () => {
         assert.equal(arrayAsNumbers[2].value(), 1234);
     });
 
-    const rangeTextText = 'str1: s1\nmap1:\n  map11:\n    foo: 123\n    bar: 456\nmap2:\n  baz: 789\narr:\n- a\n- b\n- m:\n    am1: 987';
+    const rangeTestText = 'str1: s1\nmap1:\n  map11:\n    foo: 123\n    bar: 456\nmap2:\n  baz: 789\narr:\n- a\n- b\n- m:\n    am1: 987';
+    const rangeTestWithMissingText = 'api: s1\nspec:\n  containers:\n  - image: i1\n    resources:\n    moar: something';
 
     it('can give out a highlight range for nonexistent nodes', () => {
-        const resource = parser.parseYAML(rangeTextText)[0];
+        const resource = parser.parseYAML(rangeTestText)[0];
         const result = parser.asTraversable(resource);
-
-        function assertHighlightRangeIs(entry: parser.TraversalEntry, start: number, end: number) {
-            assert.equal(parser.highlightRange(entry)?.start, start);
-            assert.equal(parser.highlightRange(entry)?.end, end);
-        }
 
         assertHighlightRangeIs(result.child('str1'), 6, 8);  // because this is the value range not the key range
 
@@ -144,6 +140,16 @@ describe('mostly-type-safe convenience layer', () => {
         assertHighlightRangeIs(result.array('arr').number(0), 74, 75);
         assertHighlightRangeIs(result.array('arr').map(0).child('nope'), 74, 75);
         assertHighlightRangeIs(result.array('arr').map(2).child('nope'), 72, 98);  // TODO: again feels like 'nonexistent child of existent map' is blowing up the wrong thing - this is the whole array  // TODO: why 98 rather than 97?!
+    });
+    it('can give out a highlight range for nonexistent nodes in the face of missing values', () => {
+        const resource = parser.parseYAML(rangeTestWithMissingText)[0];
+        const result = parser.asTraversable(resource);
+
+        const underMissing = result.map('spec').array('containers').map(0).map('resources').map('limits').map('memory');
+        //                                                                                       ^^ this is where it ceases to exist
+        //                                                                      ^^ this exists but its value is missing; it should still be the range
+
+        assertHighlightRangeIs(underMissing, 46, 55);
     });
 });
 
@@ -230,3 +236,8 @@ describe('terse JavaScript-ish convenience layer', () => {
         assert.equal(doc.metadata.labelles.hello.exists(), false);
     });
 });
+
+function assertHighlightRangeIs(entry: parser.TraversalEntry, start: number, end: number) {
+    assert.equal(parser.highlightRange(entry)?.start, start);
+    assert.equal(parser.highlightRange(entry)?.end, end);
+}
